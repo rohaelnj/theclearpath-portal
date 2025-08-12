@@ -19,19 +19,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       }
       setChecking(false);
     });
-
     return () => unsubscribe();
-    // eslint-disable-next-line
-  }, []);
+  }, [router]);
 
   if (checking) {
     return (
-      <div style={{
-        textAlign: "center",
-        paddingTop: "4rem",
-        fontFamily: "'Playfair Display', serif",
-        color: "#1F4142"
-      }}>
+      <div
+        style={{
+          textAlign: "center",
+          paddingTop: "4rem",
+          fontFamily: "'Playfair Display', serif",
+          color: "#1F4142",
+        }}
+      >
         Checking authentication...
       </div>
     );
