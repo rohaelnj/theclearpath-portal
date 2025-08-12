@@ -2,27 +2,36 @@
 import { App, cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
-let app: App;
+// Ensure all required env variables exist
+const required = [
+  "FIREBASE_ADMIN_PROJECT_ID",
+  "FIREBASE_ADMIN_CLIENT_EMAIL",
+  "FIREBASE_ADMIN_PRIVATE_KEY",
+] as const;
 
-// Pull from .env (you already set these)
+for (const key of required) {
+  if (!process.env[key]) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
+}
+
+// Pull from env
 const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID!;
 const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL!;
 const rawPrivateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY!;
 
-// Convert literal \n back to newlines
+// Convert literal \n back into actual newlines
 const privateKey = rawPrivateKey.replace(/\\n/g, "\n");
 
-if (!getApps().length) {
-  app = initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-  });
-} else {
-  app = getApps()[0]!;
-}
+const app: App = getApps().length
+  ? getApps()[0]!
+  : initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+    });
 
 export const adminAuth = getAuth(app);
 export default app;
