@@ -53,3 +53,7 @@ stylelintcache
 key.pem
 key.pem.b64
 key.pem.save
+# Local admin keys (never commit)
+key.pem
+key.pem.b64
+key.pem.save
