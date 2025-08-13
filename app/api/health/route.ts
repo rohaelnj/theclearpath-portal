@@ -7,13 +7,13 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
-    const origin = new URL(req.url).origin; // e.g. https://portal.theclearpath.ae
+    const origin = new URL(req.url).origin;
     const res = await fetch(`${origin}/api/admin-health`, { cache: "no-store" });
     const data = await res.json().catch(() => null);
-
     const ok = !!data?.ok;
+
     return NextResponse.json(
-      ok ? { ok: true } : { ok: false, error: data?.reason || "request_failed" },
+      ok ? { ok: true } : { ok: false, error: data?.error || data?.reason || "request_failed" },
       { status: ok ? 200 : 500 }
     );
   } catch {
