@@ -1,6 +1,6 @@
 // app/api/send-verification/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "../../../src/firebaseAdmin";
+import { adminAuth } from "@/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,39 +9,43 @@ const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, displayName } = await req.json();
+    // Always await the JSON body
+    const { email, displayName } = (await req.json()) as {
+      email?: string;
+      displayName?: string;
+    };
 
     if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "Missing email" }, { status: 400 });
     }
 
-    // Determine base site URL (env > request origin)
-    const origin = (() => {
-      try {
-        return new URL(req.url).origin;
-      } catch {
-        return "";
-      }
-    })();
-    const base = (process.env.PUBLIC_BASE_URL || origin || "").replace(/\/$/, "");
+    // Infer base URL: prefer PUBLIC_BASE_URL, else from request headers
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const originHeader = req.headers.get("origin");
+    const inferredOrigin =
+      originHeader ||
+      (forwardedHost ? `https://${forwardedHost}` : new URL(req.url).origin);
 
-    // Use a public logo URL if provided, else fall back to site logo
-    // NOTE: while on localhost, email clients cannot fetch /logo.png
-    // so EMAIL_LOGO_URL is recommended in dev.
+    const base = (process.env.PUBLIC_BASE_URL || inferredOrigin || "").replace(/\/$/, "");
+
+    // Public logo URL is safest for email clients
     const logoUrl = process.env.EMAIL_LOGO_URL || `${base}/logo.png`;
 
-    // Create Firebase email verification link
+    // Firebase email verification link
     const verifyUrl = await adminAuth.generateEmailVerificationLink(email, {
       url: `${base}/verify-email?from=cta`,
       handleCodeInApp: true,
     });
 
-    // Send via Brevo
+    // Brevo config
     const apiKey = process.env.BREVO_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "Missing BREVO_API_KEY" }, { status: 500 });
     }
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@theclearpath.ae";
+    const senderName = process.env.BREVO_SENDER_NAME || "The Clear Path";
 
+    // Email HTML body
     const html = `
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#DFD6C7;padding:32px 0;font-family:Arial,Helvetica,sans-serif;">
         <tr>
@@ -74,7 +78,7 @@ export async function POST(req: NextRequest) {
       </table>`;
 
     const brevoPayload = {
-      sender: { name: "The Clear Path", email: "noreply@theclearpath.ae" },
+      sender: { name: senderName, email: senderEmail },
       to: [{ email, name: displayName || email }],
       subject: "Verify your email for The Clear Path",
       htmlContent: html,

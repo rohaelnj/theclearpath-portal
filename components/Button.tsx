@@ -15,7 +15,6 @@ export default function Button({
   type = "button",
   className = "",
 }: ButtonProps) {
-  // If a link, render <a>; else, <button>
   if (href) {
     return (
       <a
@@ -29,6 +28,7 @@ export default function Button({
       </a>
     );
   }
+
   return (
     <button
       type={type}
@@ -42,4 +42,3 @@ export default function Button({
     </button>
   );
 }
-

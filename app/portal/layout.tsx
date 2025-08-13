@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/firebaseConfig";
+import { auth } from "@/firebaseClient";
 import { useRouter } from "next/navigation";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +11,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (!user || !user.emailVerified) {
         router.replace("/login");
       } else {
@@ -19,7 +19,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       }
       setChecking(false);
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, [router]);
 
   if (checking) {

@@ -1,7 +1,6 @@
-// app/login/page.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -9,7 +8,7 @@ import {
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
-import { auth } from "@/firebaseConfig";
+import { auth } from "@/firebaseClient";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,19 +26,22 @@ export default function LoginPage() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  // Handle result after a redirect sign-in (iOS Safari, popup-blocked, etc.)
+  useEffect(() => {
     getRedirectResult(auth)
       .then((res) => {
         if (res?.user) router.push("/portal");
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [router]);
 
   async function handleGoogleSignIn() {
     setError("");
     setLoading(true);
+
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
+
     try {
       if (isMobileSafari()) {
         await signInWithRedirect(auth, provider);
@@ -56,9 +58,6 @@ export default function LoginPage() {
         return;
       }
       setError("Google sign-in failed. Try again.");
-      if (process.env.NODE_ENV === "development") {
-        console.error("Google Sign-In Error:", err?.message);
-      }
     } finally {
       setLoading(false);
     }
@@ -81,9 +80,6 @@ export default function LoginPage() {
       else if (code === "auth/wrong-password") setError("Incorrect password. Please try again.");
       else if (code === "auth/invalid-email") setError("Please enter a valid email address.");
       else setError("Something went wrong. Please try again.");
-      if (process.env.NODE_ENV === "development") {
-        console.error("Login Error:", err?.message);
-      }
     } finally {
       setLoading(false);
     }
@@ -105,14 +101,7 @@ export default function LoginPage() {
         <Image src="/logo.png" alt="The Clear Path logo" width={100} height={100} priority />
       </div>
 
-      <h1
-        style={{
-          color: "#1F4142",
-          fontSize: "2.1rem",
-          marginBottom: "1rem",
-          textAlign: "center",
-        }}
-      >
+      <h1 style={{ color: "#1F4142", fontSize: "2.1rem", marginBottom: "1rem", textAlign: "center" }}>
         Log In to Your Account
       </h1>
 
@@ -157,15 +146,7 @@ export default function LoginPage() {
 
         <div style={{ display: "flex", alignItems: "center", margin: "6px 0 10px 0" }}>
           <div style={{ flex: 1, height: 1, background: "#ddd" }} />
-          <span
-            style={{
-              margin: "0 14px",
-              color: "#444",
-              fontWeight: 700,
-              fontSize: "1.08rem",
-              letterSpacing: "0.5px",
-            }}
-          >
+          <span style={{ margin: "0 14px", color: "#444", fontWeight: 700, fontSize: "1.08rem", letterSpacing: "0.5px" }}>
             or
           </span>
           <div style={{ flex: 1, height: 1, background: "#ddd" }} />
@@ -209,11 +190,7 @@ export default function LoginPage() {
           </a>
         </div>
 
-        {error && (
-          <p style={{ marginTop: "1rem", color: "#B00020", textAlign: "center" }}>
-            {error}
-          </p>
-        )}
+        {error && <p style={{ marginTop: "1rem", color: "#B00020", textAlign: "center" }}>{error}</p>}
       </form>
 
       <p style={{ marginTop: "2.2rem", color: "#1F4140" }}>
