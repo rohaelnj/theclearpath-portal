@@ -6,10 +6,10 @@ package-lock.json
 
 # Next.js build output
 .next/
-out/
 .next/cache/
+out/
 
-# Vercel / deployments (when you add later)
+# Vercel
 .vercel/
 
 # Env files (KEEP THEM SECRET)
@@ -26,7 +26,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS / editor junk
+# OS / editor
 .DS_Store
 Thumbs.db
 *.swp
@@ -45,5 +45,11 @@ coverage/
 stylelintcache
 .turbo/
 
-# Typescript
+# TypeScript
 *.tsbuildinfo
+.vercel
+
+# Local admin keys (never commit)
+key.pem
+key.pem.b64
+key.pem.save

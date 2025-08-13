@@ -1,49 +1,57 @@
+// app/api/admin-health/route.ts
 import { NextResponse } from "next/server";
 import * as admin from "firebase-admin";
 
-function getCred() {
+// Firebase Admin must run on Node, not Edge
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getPrivateKey(): string {
+    // Preferred: base64-encoded PEM
     const b64 = process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64 || "";
-    const pem = Buffer.from(b64, "base64").toString("utf8");
-    return {
-        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-        privateKey: pem,
-    };
+    if (b64) return Buffer.from(b64, "base64").toString("utf8");
+
+    // Fallback: plain key with \n escapes
+    const raw = process.env.FIREBASE_ADMIN_PRIVATE_KEY || "";
+    return raw.replace(/\\n/g, "\n");
 }
 
-// make sure we don't re-init on hot reloads
 function ensureAdmin() {
     if (admin.apps.length) return admin.app();
-    const { projectId, clientEmail, privateKey } = getCred();
-    if (!projectId || !clientEmail || !privateKey.startsWith("-----BEGIN PRIVATE KEY-----")) {
-        throw new Error("Env missing or bad PEM");
+
+    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+    const privateKey = getPrivateKey();
+
+    if (
+        !projectId ||
+        !clientEmail ||
+        !privateKey ||
+        !privateKey.startsWith("-----BEGIN PRIVATE KEY-----")
+    ) {
+        throw new Error("Missing/invalid Firebase Admin env vars");
     }
+
     return admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey,
-        }),
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
     });
 }
 
 export async function GET() {
     try {
         const app = ensureAdmin();
-        // a harmless call that forces credentials to be used
+        // harmless call that exercises the creds
         await app.auth().listUsers(1);
         return NextResponse.json({ ok: true, msg: "admin OK" });
     } catch (err: any) {
-        // Log everything server-side
         console.error("ADMIN_HEALTH_FAIL", {
             code: err?.code,
             status: err?.status,
             message: err?.message,
             name: err?.name,
         });
-        // return a safe summary to the browser (no secrets)
         return NextResponse.json(
-            { ok: false, reason: "admin_init_failed", detail: err?.message ?? String(err) },
+            { ok: false, error: err?.code || "admin_init_failed", detail: err?.message },
             { status: 500 }
         );
     }
