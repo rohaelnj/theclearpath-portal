@@ -3,14 +3,10 @@ import type { NextConfig } from "next";
 
 const CSP = [
   "default-src 'self'",
-  // allow Next.js runtime and hydration
   "script-src 'self' https: 'unsafe-inline' 'unsafe-eval'",
-  // inline style props from React
   "style-src 'self' 'unsafe-inline' https:",
-  // assets
   "img-src 'self' https: data:",
   "font-src 'self' https: data:",
-  // APIs (broad allow for now; tighten later)
   "connect-src 'self' https:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
