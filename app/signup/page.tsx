@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, type ChangeEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,11 +9,14 @@ import { auth } from '@/firebaseClient';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
+  sendEmailVerification,
   getRedirectResult,
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithRedirect,
-  UserCredential,
+  setPersistence,
+  browserLocalPersistence,
+  type UserCredential,
 } from 'firebase/auth';
 
 function errMsg(e: unknown): string {
@@ -32,10 +35,17 @@ export default function Signup(): React.ReactElement {
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    // Ensure session persists locally across redirects (Google)
+    setPersistence(auth, browserLocalPersistence).catch(() => { });
+
+    // If already signed in, go to dashboard
     const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
+
+    // Complete Google redirect sign-in
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
       .catch(() => { });
+
     return () => unsub();
   }, [router]);
 
@@ -65,17 +75,14 @@ export default function Signup(): React.ReactElement {
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      void fetch('/api/send-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email,
-          displayName: trimmedName || user.email?.split('@')[0] || 'there',
-        }),
+      // Send Firebase verification email that targets /verify-email
+      await sendEmailVerification(user, {
+        url: 'https://portal.theclearpath.ae/verify-email',
+        handleCodeInApp: true,
       });
 
-      setSuccess('Account created! Please check your email to verify.');
-      await auth.signOut();
+      setSuccess('Account created. Check your email to verify.');
+      // Stay signed in so /verify-email can take user straight to /portal
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
       const msg = errMsg(e);
