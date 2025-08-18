@@ -1,23 +1,26 @@
-// app/login/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword, getRedirectResult } from 'firebase/auth';
+import { signInWithEmailAndPassword, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebaseClient';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import GoogleButton from '../components/button';
 
-export default function LoginPage() {
+export default function LoginPage(): React.ReactElement {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    getRedirectResult(auth).then((res) => { if (res?.user) router.push('/portal'); }).catch(() => { });
+    const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
+    getRedirectResult(auth)
+      .then((res) => { if (res?.user) router.replace('/portal'); })
+      .catch(() => { });
+    return () => unsub();
   }, [router]);
 
   function mapError(code?: string): string {
@@ -31,7 +34,7 @@ export default function LoginPage() {
     }
   }
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -40,20 +43,19 @@ export default function LoginPage() {
 
       if (!user.emailVerified) {
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '';
-        try {
-          await fetch('/api/send-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: user.email || '', displayName }),
-          });
-        } catch { }
-        router.replace('/verify-email');
+        void fetch('/api/send-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email || '', displayName }),
+        });
+        router.replace('/verify-email/sent');
         return;
       }
 
       router.push('/portal');
-    } catch (err: any) {
-      setError(mapError(err?.code));
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      setError(mapError(code));
     } finally {
       setLoading(false);
     }
@@ -126,7 +128,7 @@ export default function LoginPage() {
           <div style={{ flex: 1, height: 1, background: '#ddd' }} />
         </div>
 
-        <GoogleButton redirectTo="/portal" />
+        <GoogleButton />
 
         <div style={{ marginTop: '0.8rem', textAlign: 'right' }}>
           <a href="/forgot-password" style={{ fontSize: 14, color: '#1F4142', textDecoration: 'underline' }}>

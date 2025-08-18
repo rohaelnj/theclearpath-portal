@@ -1,45 +1,36 @@
-"use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { signInWithCustomToken } from "firebase/auth";
-import { auth } from "@/firebaseClient";
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { signInWithCustomToken } from 'firebase/auth';
+import { auth } from '@/firebaseClient';
 
-function Inner() {
+export default function AuthCallback(): React.ReactElement {
     const sp = useSearchParams();
     const router = useRouter();
-    const token = sp.get("token");
-    const next = sp.get("next") || "/portal";
-    const [msg, setMsg] = useState("Signing you in…");
+    const [err, setErr] = useState<string>('');
 
     useEffect(() => {
-        const run = async () => {
-            if (!token) {
-                router.replace("/login?autologin=missing");
-                return;
-            }
+        const t = sp.get('t');
+        const next = sp.get('next') || '/portal';
+        if (!t) {
+            router.replace('/login?verify=fail');
+            return;
+        }
+        (async () => {
             try {
-                await signInWithCustomToken(auth, token);
+                await signInWithCustomToken(auth, t);
                 router.replace(next);
-            } catch {
-                setMsg("Auto-login failed. Redirecting to login…");
-                setTimeout(() => router.replace("/login?autologin=fail"), 600);
+            } catch (e) {
+                setErr((e as Error).message);
+                router.replace('/login?verify=fail');
             }
-        };
-        run();
-    }, [token, next, router]);
+        })();
+    }, [sp, router]);
 
     return (
-        <main style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", color: "#1F4142" }}>
-            <div>{msg}</div>
+        <main style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui' }}>
+            <p>Finishing sign-in…</p>
         </main>
-    );
-}
-
-export default function Page() {
-    return (
-        <Suspense fallback={<main style={{ padding: 24 }}>Loading…</main>}>
-            <Inner />
-        </Suspense>
     );
 }

@@ -6,11 +6,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { auth } from '@/firebaseClient';
-import { createUserWithEmailAndPassword, getRedirectResult, updateProfile } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  getRedirectResult,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  UserCredential,
+} from 'firebase/auth';
 
-import GoogleButton from '../components/button';
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  try { return JSON.stringify(e); } catch { return String(e); }
+}
 
-export default function Signup() {
+export default function Signup(): React.ReactElement {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -18,61 +29,65 @@ export default function Signup() {
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [gLoading, setGLoading] = useState<boolean>(false);
 
-  // Complete Google redirect if arriving from it
   useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
     getRedirectResult(auth)
-      .then((res) => {
-        if (res?.user) router.push('/portal');
-      })
+      .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
       .catch(() => { });
+    return () => unsub();
   }, [router]);
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleGoogle = async (): Promise<void> => {
+    try {
+      setError('');
+      setGLoading(true);
+      const provider = new GoogleAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (e: unknown) {
+      setError('Google sign-in failed: ' + errMsg(e));
+      setGLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     if (password.length < 8) {
       setError('Your password needs to be at least 8 characters long.');
       return;
     }
-
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-
       const trimmedName = name.trim();
-      if (trimmedName) {
-        await updateProfile(user, { displayName: trimmedName });
-      }
+      if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      // Optional: send branded verification email (non-blocking)
-      try {
-        await fetch('/api/send-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: user.email,
-            displayName: trimmedName || user.email?.split('@')[0] || 'there',
-          }),
-        });
-      } catch { }
+      void fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          displayName: trimmedName || user.email?.split('@')[0] || 'there',
+        }),
+      });
 
       setSuccess('Account created! Please check your email to verify.');
       await auth.signOut();
-      setTimeout(() => router.push('/verify-email?status=sent'), 1500);
-    } catch (err: any) {
-      const code = err?.code;
-      if (code === 'auth/email-already-in-use') {
+      setTimeout(() => router.push('/verify-email/sent'), 1200);
+    } catch (e: unknown) {
+      const msg = errMsg(e);
+      if (msg.includes('auth/email-already-in-use')) {
         setError('This email is already registered. Please sign in instead.');
-        setTimeout(() => router.push('/login'), 1500);
-      } else if (code === 'auth/invalid-email') {
+        setTimeout(() => router.push('/login'), 1200);
+      } else if (msg.includes('auth/invalid-email')) {
         setError('Please enter a valid email address.');
-      } else if (code === 'auth/weak-password') {
+      } else if (msg.includes('auth/weak-password')) {
         setError('Password must be at least 8 characters.');
       } else {
-        setError('Oops! Something went wrong.');
+        setError('Signup failed: ' + msg);
       }
     } finally {
       setLoading(false);
@@ -102,8 +117,7 @@ export default function Signup() {
         </p>
       </div>
 
-      <form
-        onSubmit={handleSignup}
+      <form onSubmit={handleSignup}
         style={{
           backgroundColor: '#DED4C8',
           padding: '2.25rem',
@@ -123,14 +137,7 @@ export default function Signup() {
             value={name}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             autoComplete="name"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              marginTop: '0.35rem',
-              borderRadius: 6,
-              border: '1px solid #aaa',   // <-- fixed quotes here
-              fontSize: '1rem',
-            }}
+            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
           />
         </label>
 
@@ -142,14 +149,7 @@ export default function Signup() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              marginTop: '0.35rem',
-              borderRadius: 6,
-              border: '1px solid #aaa',
-              fontSize: '1rem',
-            }}
+            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
           />
         </label>
 
@@ -161,14 +161,7 @@ export default function Signup() {
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
             autoComplete="new-password"
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              marginTop: '0.35rem',
-              borderRadius: 6,
-              border: '1px solid #aaa',
-              fontSize: '1rem',
-            }}
+            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
           />
           <small style={{ display: 'block', color: '#666', marginTop: '0.25rem', fontSize: '0.875rem' }}>
             Must be at least 8 characters.
@@ -194,7 +187,25 @@ export default function Signup() {
           {loading ? 'Creating Account...' : 'Create My Account'}
         </button>
 
-        <GoogleButton redirectTo="/portal" />
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={gLoading}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '0.85rem',
+            backgroundColor: gLoading ? '#999' : '#FFFFFF',
+            color: '#1F4142',
+            fontWeight: 700,
+            border: '1px solid #1F4142',
+            borderRadius: 6,
+            cursor: gLoading ? 'not-allowed' : 'pointer',
+            fontSize: '1.05rem',
+          }}
+        >
+          {gLoading ? 'Please wait…' : 'Continue with Google'}
+        </button>
       </form>
 
       <p style={{ marginTop: '2rem', color: '#1F4140', textAlign: 'center' }}>

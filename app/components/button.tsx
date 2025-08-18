@@ -2,44 +2,20 @@
 
 import { useState } from 'react';
 import { auth } from '@/firebaseClient';
-import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 
-function isMobileSafari(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  return /iP(hone|ad|od)/.test(ua) && /Safari/.test(ua) && !/Chrome/.test(ua);
-}
-
-/**
- * Google Sign-In button (popup with redirect fallback).
- * Usage (from app/login or app/signup):  import GoogleButton from '../components/button'
- */
-export default function GoogleButton({ redirectTo = '/portal' }: { redirectTo?: string }) {
+export default function GoogleButton(): React.ReactElement {
   const [loading, setLoading] = useState(false);
 
-  const handleGoogle = async () => {
+  const handleGoogle = async (): Promise<void> => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-      if (isMobileSafari()) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      await signInWithPopup(auth, provider);
-      window.location.replace(redirectTo);
-    } catch (err: any) {
-      if (
-        err?.code === 'auth/popup-blocked' ||
-        err?.code === 'auth/operation-not-supported-in-this-environment'
-      ) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
+      await signInWithRedirect(auth, provider);
+    } catch (err) {
       console.error('Google sign-in failed:', err);
       alert('Google sign-in failed. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -55,7 +31,7 @@ export default function GoogleButton({ redirectTo = '/portal' }: { redirectTo?: 
         backgroundColor: '#fff',
         color: '#1F4142',
         fontWeight: 'bold',
-        border: '1.5px solid #1F4142',
+        border: '1.5px solid #1F4142', // <-- fixed
         borderRadius: 6,
         cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: '1.05rem',

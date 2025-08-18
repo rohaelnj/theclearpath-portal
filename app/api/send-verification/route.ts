@@ -1,87 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { adminAuth } from "@/firebaseAdmin";
+import { getAuth } from "firebase-admin/auth";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 
-type Body = { email?: string; uid?: string; displayName?: string };
+/**
+ * POST /api/send-verification
+ * Body: { email: string, displayName?: string, next?: string }
+ * Looks up UID by email, generates Firebase verify link, sends Brevo template #2.
+ */
 
-function firstFrom(input?: string | null): string | undefined {
-  if (!input) return undefined;
-  const t = input.trim();
-  if (!t) return undefined;
-  const local = t.includes("@") ? t.split("@")[0] : t;
-  const first = local.split(/[.\s_-]+/)[0];
-  return first ? first[0].toUpperCase() + first.slice(1) : undefined;
+function initAdmin() {
+  if (getApps().length) return;
+  const key =
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64
+      ? Buffer.from(process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64, "base64").toString("utf8")
+      : (process.env.FIREBASE_ADMIN_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID!,
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL!,
+      privateKey: key,
+    }),
+  });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = (process.env.BREVO_API_KEY || "").trim();
-    const templateId = process.env.BREVO_TEMPLATE_ID_VERIFY || "";
-    if (!apiKey || !templateId) {
-      return NextResponse.json(
-        { ok: false, code: "missing-env", error: "Missing BREVO_API_KEY or BREVO_TEMPLATE_ID_VERIFY" },
-        { status: 500 }
-      );
+    initAdmin();
+
+    const { email, displayName, next = "/portal" } = await req.json?.() ?? {};
+    if (!email) {
+      return NextResponse.json({ ok: false, error: "email required" }, { status: 400 });
     }
 
-    let { email, uid, displayName }: Body = await req.json().catch(() => ({} as Body));
-    if (!email && !uid) {
-      return NextResponse.json({ ok: false, code: "bad-request", error: "Provide email or uid" }, { status: 400 });
-    }
+    // Lookup UID by email
+    const userRec = await getAuth().getUserByEmail(email);
+    const uid = userRec.uid;
 
-    if (!email && uid) {
-      const u = await adminAuth.getUser(uid);
-      email = u.email || undefined;
-      displayName = displayName || u.displayName || undefined;
-      if (!email) return NextResponse.json({ ok: false, code: "user-has-no-email" }, { status: 409 });
-      const pass = u.providerData.some((p) => p.providerId === "password");
-      if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
-      if (u.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
-    }
-
-    const u2 = await adminAuth.getUserByEmail(email!);
-    if (u2.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
-    const pass = u2.providerData.some((p) => p.providerId === "password");
-    if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
-
-    // Link points to in-app verifier, which applies code then redirects to /portal
-    const verifyUrl = await adminAuth.generateEmailVerificationLink(email!, {
+    // Generate verify link that lands on your existing /verify-email route
+    const rawLink = await getAuth().generateEmailVerificationLink(email, {
       url: "https://portal.theclearpath.ae/verify-email",
+      handleCodeInApp: true,
     });
 
-    const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email!) ?? "";
+    const u = new URL(rawLink);
+    const mode = u.searchParams.get("mode") || "verifyEmail";
+    const oob = u.searchParams.get("oobCode");
+    const apiKey = u.searchParams.get("apiKey");
+    if (!oob || !apiKey) {
+      return NextResponse.json({ ok: false, error: "Failed to get oobCode/apiKey" }, { status: 500 });
+    }
+
+    const verify_url =
+      `https://portal.theclearpath.ae/verify-email?mode=${mode}` +
+      `&oobCode=${encodeURIComponent(oob)}` +
+      `&apiKey=${encodeURIComponent(apiKey)}` +
+      `&next=${encodeURIComponent(next)}`;
+
+    // Send via Brevo template ID 2
+    const templateId = 2;
+    const apiKeyBrevo = process.env.BREVO_API_KEY!;
+    if (!apiKeyBrevo) {
+      return NextResponse.json({ ok: false, error: "BREVO_API_KEY not set" }, { status: 500 });
+    }
 
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         to: [{ email, name: displayName || email }],
-        sender: {
-          email: process.env.BREVO_SENDER_EMAIL || "noreply@theclearpath.ae",
-          name: process.env.BREVO_SENDER_NAME || "The Clear Path",
-        },
-        templateId: Number(templateId),
-        params: {
-          displayName: displayName || FIRSTNAME,
-          FIRSTNAME,
-          NAME: displayName || "",
-          verify_url: verifyUrl, // {{ params.verify_url }} in Brevo template
-        },
-        subject: "Verify your email for The Clear Path",
+        templateId,
+        params: { displayName: displayName || "", verify_url },
+        tags: ["verify"],
       },
-      { headers: { "api-key": apiKey, "Content-Type": "application/json" }, timeout: 15000 }
+      { headers: { "api-key": apiKeyBrevo, "Content-Type": "application/json" } }
     );
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, uid, verify_url });
   } catch (err: any) {
-    const code = err?.errorInfo?.code || "";
-    if (code === "auth/user-not-found") {
-      return NextResponse.json({ ok: false, code: "user-not-found", error: "No user record for that email" }, { status: 404 });
-    }
-    if (code === "auth/too-many-requests") {
-      return NextResponse.json({ ok: false, code: "too-many-requests", error: "TOO_MANY_ATTEMPTS_TRY_LATER" }, { status: 429 });
-    }
     return NextResponse.json(
-      { ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) },
+      { ok: false, error: err?.response?.data || err?.message || "unknown error" },
       { status: 500 }
     );
   }
