@@ -17,13 +17,16 @@ export async function POST(req: NextRequest) {
         const { email, displayName }: Body = await req.json();
         if (!email) return NextResponse.json({ ok: false, error: "Missing email" }, { status: 400 });
 
-        const apiKey = process.env.BREVO_API_KEY;
-        const templateId = process.env.BREVO_TEMPLATE_ID_WELCOME; // numeric string, e.g. "13"
+        const apiKey = (process.env.BREVO_API_KEY || "").trim();
+        const templateId = process.env.BREVO_TEMPLATE_ID_WELCOME || "";
         if (!apiKey || !templateId) {
-            return NextResponse.json({ ok: false, error: "Missing Brevo envs (BREVO_API_KEY or BREVO_TEMPLATE_ID_WELCOME)" }, { status: 500 });
+            return NextResponse.json(
+                { ok: false, code: "missing-env", error: "Missing BREVO_API_KEY or BREVO_TEMPLATE_ID_WELCOME" },
+                { status: 500 }
+            );
         }
 
-        const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email) ?? undefined;
+        const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email) ?? "";
 
         await axios.post(
             "https://api.brevo.com/v3/smtp/email",
@@ -35,10 +38,10 @@ export async function POST(req: NextRequest) {
                 },
                 templateId: Number(templateId),
                 params: {
-                    displayName: displayName || FIRSTNAME || "",
-                    FIRSTNAME: FIRSTNAME || "",
+                    displayName: displayName || FIRSTNAME,
+                    FIRSTNAME,
                     NAME: displayName || "",
-                    portal_url: "https://portal.theclearpath.ae/login", // {{ params.portal_url }} in Brevo
+                    portal_url: "https://portal.theclearpath.ae/login",
                 },
                 subject: "Welcome to The Clear Path",
             },
@@ -47,7 +50,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ ok: true });
     } catch (err: any) {
-        const msg = String(err?.response?.data?.message || err?.message || err);
-        return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+        return NextResponse.json(
+            { ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) },
+            { status: 500 }
+        );
     }
 }

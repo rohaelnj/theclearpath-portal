@@ -34,19 +34,19 @@ export async function POST(req: NextRequest) {
       email = u.email || undefined;
       displayName = displayName || u.displayName || undefined;
       if (!email) return NextResponse.json({ ok: false, code: "user-has-no-email" }, { status: 409 });
-      const pass = u.providerData.some(p => p.providerId === "password");
+      const pass = u.providerData.some((p) => p.providerId === "password");
       if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
       if (u.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
     }
 
     const u2 = await adminAuth.getUserByEmail(email!);
     if (u2.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
-    const pass = u2.providerData.some(p => p.providerId === "password");
+    const pass = u2.providerData.some((p) => p.providerId === "password");
     if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
 
-    // Verify → redirect directly to dashboard
+    // Link points to in-app verifier, which applies code then redirects to /portal
     const verifyUrl = await adminAuth.generateEmailVerificationLink(email!, {
-      url: "https://portal.theclearpath.ae/portal",
+      url: "https://portal.theclearpath.ae/verify-email",
     });
 
     const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email!) ?? "";
@@ -80,6 +80,9 @@ export async function POST(req: NextRequest) {
     if (code === "auth/too-many-requests") {
       return NextResponse.json({ ok: false, code: "too-many-requests", error: "TOO_MANY_ATTEMPTS_TRY_LATER" }, { status: 429 });
     }
-    return NextResponse.json({ ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) },
+      { status: 500 }
+    );
   }
 }

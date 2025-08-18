@@ -1,44 +1,45 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/firebaseClient';
-import { getRedirectResult, onAuthStateChanged, type UserCredential } from 'firebase/auth';
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { signInWithCustomToken } from "firebase/auth";
+import { auth } from "@/firebaseClient";
 
-export default function AuthCallback() {
+function Inner() {
+    const sp = useSearchParams();
     const router = useRouter();
-    const [msg, setMsg] = useState('Finishing sign-in…');
+    const token = sp.get("token");
+    const next = sp.get("next") || "/portal";
+    const [msg, setMsg] = useState("Signing you in…");
 
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (user) => {
-            if (user) router.replace('/portal');
-        });
-
         const run = async () => {
+            if (!token) {
+                router.replace("/login?autologin=missing");
+                return;
+            }
             try {
-                const result: UserCredential | null = await getRedirectResult(auth);
-                if (result?.user) {
-                    setMsg('Signed in. Redirecting…');
-                    router.replace('/portal');
-                    return;
-                }
-                if (auth.currentUser) {
-                    setMsg('Session found. Redirecting…');
-                    router.replace('/portal');
-                    return;
-                }
-                setMsg('No session found. Returning to login…');
-                router.replace('/login');
-            } catch (e) {
-                console.error('Redirect error:', e);
-                setMsg('Sign-in failed. Returning to login…');
-                router.replace('/login');
+                await signInWithCustomToken(auth, token);
+                router.replace(next);
+            } catch {
+                setMsg("Auto-login failed. Redirecting to login…");
+                setTimeout(() => router.replace("/login?autologin=fail"), 600);
             }
         };
-
         run();
-        return () => unsub();
-    }, [router]);
+    }, [token, next, router]);
 
-    return <div className="p-6 text-center">{msg}</div>;
+    return (
+        <main style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui,sans-serif", color: "#1F4142" }}>
+            <div>{msg}</div>
+        </main>
+    );
+}
+
+export default function Page() {
+    return (
+        <Suspense fallback={<main style={{ padding: 24 }}>Loading…</main>}>
+            <Inner />
+        </Suspense>
+    );
 }
