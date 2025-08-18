@@ -21,19 +21,19 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./*"
-      ],
-      "@/src/*": [
         "src/*"
       ],
-      "@/firebaseConfig": [
-        "src/firebaseConfig.ts"
+      "@/lib/*": [
+        "src/lib/*"
       ],
       "@/firebaseClient": [
         "src/firebaseClient.ts"
       ],
       "@/firebaseAdmin": [
         "src/firebaseAdmin.ts"
+      ],
+      "@/firebaseConfig": [
+        "src/firebaseConfig.ts"
       ]
     },
     "plugins": [

@@ -11,7 +11,6 @@ export default function PortalPage() {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Track viewport for minor UI tweaks
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 430);
     handleResize();
@@ -19,7 +18,6 @@ export default function PortalPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Watch auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -68,7 +66,6 @@ export default function PortalPage() {
 
   return (
     <div style={{ background: color.background, minHeight: "100vh", fontFamily }}>
-      {/* Header */}
       <header
         style={{
           display: "flex",
@@ -121,6 +118,7 @@ export default function PortalPage() {
               justifyContent: "center",
               margin: "0 4px",
             }}
+            aria-label="User avatar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="#7a868b" viewBox="0 0 24 24" width="18" height="18">
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8V22h19.2v-2.8c0-3.2-6.4-4.8-9.6-4.8z" />
@@ -131,7 +129,7 @@ export default function PortalPage() {
             style={{
               color: color.text,
               fontSize: "0.98rem",
-              maxWidth: 120,
+              maxWidth: 180,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -168,7 +166,6 @@ export default function PortalPage() {
         </button>
       </header>
 
-      {/* Main */}
       <main style={{ maxWidth: 1000, margin: "0 auto", padding: "3rem 1rem 2rem" }}>
         <section
           style={{

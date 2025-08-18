@@ -1,111 +1,85 @@
-// app/api/send-verification/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 import { adminAuth } from "@/firebaseAdmin";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+type Body = { email?: string; uid?: string; displayName?: string };
 
-const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+function firstFrom(input?: string | null): string | undefined {
+  if (!input) return undefined;
+  const t = input.trim();
+  if (!t) return undefined;
+  const local = t.includes("@") ? t.split("@")[0] : t;
+  const first = local.split(/[.\s_-]+/)[0];
+  return first ? first[0].toUpperCase() + first.slice(1) : undefined;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    // Always await the JSON body
-    const { email, displayName } = (await req.json()) as {
-      email?: string;
-      displayName?: string;
-    };
-
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Missing email" }, { status: 400 });
-    }
-
-    // Infer base URL: prefer PUBLIC_BASE_URL, else from request headers
-    const forwardedHost = req.headers.get("x-forwarded-host");
-    const originHeader = req.headers.get("origin");
-    const inferredOrigin =
-      originHeader ||
-      (forwardedHost ? `https://${forwardedHost}` : new URL(req.url).origin);
-
-    const base = (process.env.PUBLIC_BASE_URL || inferredOrigin || "").replace(/\/$/, "");
-
-    // Public logo URL is safest for email clients
-    const logoUrl = process.env.EMAIL_LOGO_URL || `${base}/logo.png`;
-
-    // Firebase email verification link
-    const verifyUrl = await adminAuth.generateEmailVerificationLink(email, {
-      url: `${base}/verify-email?from=cta`,
-      handleCodeInApp: true,
-    });
-
-    // Brevo config
-    const apiKey = process.env.BREVO_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Missing BREVO_API_KEY" }, { status: 500 });
-    }
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@theclearpath.ae";
-    const senderName = process.env.BREVO_SENDER_NAME || "The Clear Path";
-
-    // Email HTML body
-    const html = `
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#DFD6C7;padding:32px 0;font-family:Arial,Helvetica,sans-serif;">
-        <tr>
-          <td align="center">
-            <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:14px;overflow:hidden">
-              <tr>
-                <td style="background:#DED4C8;padding:28px 24px" align="center">
-                  <img src="${logoUrl}" alt="The Clear Path" width="64" height="64" style="display:block;margin-bottom:10px"/>
-                  <div style="color:#1F4142;font-weight:700;font-size:18px">Verify your email</div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px;color:#1F4140;font-size:15px;line-height:1.6">
-                  Hi${displayName ? " " + displayName : ""},<br/><br/>
-                  Please confirm your email address to activate your account.
-                  <br/><br/>
-                  <a href="${verifyUrl}" style="display:inline-block;background:#1F4142;color:#DFD6C7;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:700">
-                    Verify my email
-                  </a>
-                  <br/><br/>
-                  If the button doesn't work, copy and paste this link into your browser:<br/>
-                  <span style="word-break:break-all;color:#1F4142">${verifyUrl}</span>
-                  <br/><br/>
-                  Warm regards,<br/>The Clear Path Team
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>`;
-
-    const brevoPayload = {
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email, name: displayName || email }],
-      subject: "Verify your email for The Clear Path",
-      htmlContent: html,
-    };
-
-    const res = await fetch(BREVO_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify(brevoPayload),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
+    const apiKey = (process.env.BREVO_API_KEY || "").trim();
+    const templateId = process.env.BREVO_TEMPLATE_ID_VERIFY || "";
+    if (!apiKey || !templateId) {
       return NextResponse.json(
-        { error: "Brevo send failed", details: text || res.statusText },
+        { ok: false, code: "missing-env", error: "Missing BREVO_API_KEY or BREVO_TEMPLATE_ID_VERIFY" },
         { status: 500 }
       );
     }
 
+    let { email, uid, displayName }: Body = await req.json().catch(() => ({} as Body));
+    if (!email && !uid) {
+      return NextResponse.json({ ok: false, code: "bad-request", error: "Provide email or uid" }, { status: 400 });
+    }
+
+    if (!email && uid) {
+      const u = await adminAuth.getUser(uid);
+      email = u.email || undefined;
+      displayName = displayName || u.displayName || undefined;
+      if (!email) return NextResponse.json({ ok: false, code: "user-has-no-email" }, { status: 409 });
+      const pass = u.providerData.some(p => p.providerId === "password");
+      if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
+      if (u.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
+    }
+
+    const u2 = await adminAuth.getUserByEmail(email!);
+    if (u2.emailVerified) return NextResponse.json({ ok: true, code: "already-verified" });
+    const pass = u2.providerData.some(p => p.providerId === "password");
+    if (!pass) return NextResponse.json({ ok: false, code: "not-password-user" }, { status: 409 });
+
+    // Verify → redirect directly to dashboard
+    const verifyUrl = await adminAuth.generateEmailVerificationLink(email!, {
+      url: "https://portal.theclearpath.ae/portal",
+    });
+
+    const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email!) ?? "";
+
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        to: [{ email, name: displayName || email }],
+        sender: {
+          email: process.env.BREVO_SENDER_EMAIL || "noreply@theclearpath.ae",
+          name: process.env.BREVO_SENDER_NAME || "The Clear Path",
+        },
+        templateId: Number(templateId),
+        params: {
+          displayName: displayName || FIRSTNAME,
+          FIRSTNAME,
+          NAME: displayName || "",
+          verify_url: verifyUrl, // {{ params.verify_url }} in Brevo template
+        },
+        subject: "Verify your email for The Clear Path",
+      },
+      { headers: { "api-key": apiKey, "Content-Type": "application/json" }, timeout: 15000 }
+    );
+
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    return NextResponse.json(
-      { error: "Unexpected server error", details: err?.message || String(err) },
-      { status: 500 }
-    );
+    const code = err?.errorInfo?.code || "";
+    if (code === "auth/user-not-found") {
+      return NextResponse.json({ ok: false, code: "user-not-found", error: "No user record for that email" }, { status: 404 });
+    }
+    if (code === "auth/too-many-requests") {
+      return NextResponse.json({ ok: false, code: "too-many-requests", error: "TOO_MANY_ATTEMPTS_TRY_LATER" }, { status: 429 });
+    }
+    return NextResponse.json({ ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) }, { status: 500 });
   }
 }

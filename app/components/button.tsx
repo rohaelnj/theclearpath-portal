@@ -12,8 +12,7 @@ function isMobileSafari(): boolean {
 
 /**
  * Google Sign-In button (popup with redirect fallback).
- * File: app/components/button.tsx
- * Usage: import GoogleButton from '../components/button'
+ * Usage (from app/login or app/signup):  import GoogleButton from '../components/button'
  */
 export default function GoogleButton({ redirectTo = '/portal' }: { redirectTo?: string }) {
   const [loading, setLoading] = useState(false);
@@ -24,17 +23,13 @@ export default function GoogleButton({ redirectTo = '/portal' }: { redirectTo?: 
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-      // iOS Safari needs full-page redirect
       if (isMobileSafari()) {
         await signInWithRedirect(auth, provider);
         return;
       }
-
-      // Try popup first
       await signInWithPopup(auth, provider);
       window.location.replace(redirectTo);
     } catch (err: any) {
-      // Fallback to redirect when popup blocked / unsupported
       if (
         err?.code === 'auth/popup-blocked' ||
         err?.code === 'auth/operation-not-supported-in-this-environment'
@@ -73,7 +68,7 @@ export default function GoogleButton({ redirectTo = '/portal' }: { redirectTo?: 
       }}
     >
       <img src="/google.svg" alt="Google Logo" style={{ width: 24, height: 24 }} />
-      {loading ? 'Please wait…' : 'Sign up with Google'}
+      {loading ? 'Please wait…' : 'Continue with Google'}
     </button>
   );
 }

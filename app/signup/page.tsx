@@ -1,4 +1,3 @@
-// app/signup/page.tsx
 'use client';
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
@@ -9,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { auth } from '@/firebaseClient';
 import { createUserWithEmailAndPassword, getRedirectResult, updateProfile } from 'firebase/auth';
 
-// import YOUR Google button from YOUR folder:
 import GoogleButton from '../components/button';
 
 export default function Signup() {
@@ -21,7 +19,7 @@ export default function Signup() {
   const [success, setSuccess] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Finish Google redirect (if we arrived from it)
+  // Complete Google redirect if arriving from it
   useEffect(() => {
     getRedirectResult(auth)
       .then((res) => {
@@ -49,7 +47,7 @@ export default function Signup() {
         await updateProfile(user, { displayName: trimmedName });
       }
 
-      // fire verification email (non-blocking)
+      // Optional: send branded verification email (non-blocking)
       try {
         await fetch('/api/send-verification', {
           method: 'POST',
@@ -130,7 +128,7 @@ export default function Signup() {
               padding: '0.75rem',
               marginTop: '0.35rem',
               borderRadius: 6,
-              border: '1px solid #aaa',
+              border: '1px solid #aaa',   // <-- fixed quotes here
               fontSize: '1rem',
             }}
           />
@@ -196,7 +194,6 @@ export default function Signup() {
           {loading ? 'Creating Account...' : 'Create My Account'}
         </button>
 
-        {/* Use your Google button component */}
         <GoogleButton redirectTo="/portal" />
       </form>
 
