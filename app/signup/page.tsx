@@ -14,6 +14,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithRedirect,
+  signInWithPopup,
   setPersistence,
   browserLocalPersistence,
   type UserCredential,
@@ -35,14 +36,17 @@ export default function Signup(): React.ReactElement {
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    // Ensure session persists across Google redirect
     setPersistence(auth, browserLocalPersistence).catch(() => { });
 
+    // Only send verified or Google to dashboard
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return;
       const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
       if (isVerified) router.replace('/portal');
     });
 
+    // Complete Google redirect flow
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
       .catch(() => { });
@@ -54,8 +58,23 @@ export default function Signup(): React.ReactElement {
     try {
       setError('');
       setGLoading(true);
+
+      await setPersistence(auth, browserLocalPersistence);
+
       const provider = new GoogleAuthProvider();
-      await signInWithRedirect(auth, provider);
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      try {
+        await signInWithPopup(auth, provider);
+        router.replace('/portal');
+      } catch (err: any) {
+        const code = err?.code ?? '';
+        if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+          await signInWithRedirect(auth, provider);
+          return;
+        }
+        throw err;
+      }
     } catch (e: unknown) {
       setError('Google sign-in failed: ' + errMsg(e));
       setGLoading(false);
@@ -82,6 +101,7 @@ export default function Signup(): React.ReactElement {
       });
 
       setSuccess('Account created. Check your email to verify.');
+      // Stay signed in; verify page will push to /portal after applyActionCode
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
       const msg = errMsg(e);
