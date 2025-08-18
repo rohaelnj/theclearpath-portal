@@ -1,13 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { initializeApp, getApp, getApps } from 'firebase/app';
-import {
-  getAuth,
-  applyActionCode,
-  reload,
-  type Auth,
-  type User,
-} from 'firebase/auth';
+import { getAuth, applyActionCode, reload, type User } from 'firebase/auth';
 
 const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -19,7 +13,7 @@ const cfg = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-function auth(): Auth {
+function auth() {
   const app = getApps().length ? getApp() : initializeApp(cfg);
   return getAuth(app);
 }
@@ -36,12 +30,18 @@ export default function VerifyEmailPage() {
     applyActionCode(a, code)
       .then(async () => {
         const u: User | null = a.currentUser;
-        if (u) await reload(u);
-        setMsg('Verified. Taking you to your dashboard…');
-        window.location.replace('/portal'); // direct to dashboard
+        if (u) {
+          await reload(u);
+          setMsg('Verified. Taking you to your dashboard…');
+          window.location.replace('/portal');
+        } else {
+          setMsg('Verified. Please sign in.');
+          window.location.replace('/login?verified=1');
+        }
       })
       .catch((e) => {
-        setMsg(`Verification failed: ${e instanceof Error ? e.message : String(e)}`);
+        const t = e instanceof Error ? e.message : String(e);
+        setMsg(`Verification failed: ${t}`);
       });
   }, []);
 

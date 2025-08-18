@@ -35,13 +35,14 @@ export default function Signup(): React.ReactElement {
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Ensure session persists locally across redirects (Google)
     setPersistence(auth, browserLocalPersistence).catch(() => { });
 
-    // If already signed in, go to dashboard
-    const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (!u) return;
+      const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
+      if (isVerified) router.replace('/portal');
+    });
 
-    // Complete Google redirect sign-in
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
       .catch(() => { });
@@ -75,14 +76,12 @@ export default function Signup(): React.ReactElement {
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      // Send Firebase verification email that targets /verify-email
       await sendEmailVerification(user, {
         url: 'https://portal.theclearpath.ae/verify-email',
         handleCodeInApp: true,
       });
 
       setSuccess('Account created. Check your email to verify.');
-      // Stay signed in so /verify-email can take user straight to /portal
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
       const msg = errMsg(e);
