@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signOut, onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
+import { signOut, onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "@/firebaseClient";
 import { useRouter } from "next/navigation";
 
 export default function PortalPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -26,14 +26,25 @@ export default function PortalPage() {
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-  }, [loading, user, router]);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
+  // ProtectedLayout already redirects unauthenticated users.
+  // Keep page simple and render only when user is present.
+  if (loading || !user) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#DFD6C7",
+          fontFamily: "'Poppins', sans-serif",
+          color: "#1F4142",
+        }}
+      >
+        Loading…
+      </div>
+    );
+  }
 
   const color = {
     background: "#DFD6C7",
@@ -46,23 +57,10 @@ export default function PortalPage() {
   };
   const fontFamily = "'Poppins', sans-serif";
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: color.background,
-          fontFamily,
-        }}
-      >
-        <span style={{ color: color.text, fontSize: "1.5rem" }}>Loading...</span>
-      </div>
-    );
-  }
-  if (!user) return null;
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
   return (
     <div style={{ background: color.background, minHeight: "100vh", fontFamily }}>
@@ -137,7 +135,7 @@ export default function PortalPage() {
               flex: "1 1 0%",
             }}
           >
-            {user?.email}
+            {user.email}
           </span>
         )}
 
@@ -149,7 +147,6 @@ export default function PortalPage() {
             fontWeight: 700,
             padding: "8px 19px",
             borderRadius: "20px",
-            fontFamily,
             fontSize: "0.97rem",
             border: `1.5px solid ${color.border}`,
             cursor: "pointer",
@@ -187,11 +184,10 @@ export default function PortalPage() {
               letterSpacing: "0.5px",
             }}
           >
-            Welcome back, {user?.displayName || user?.email?.split("@")[0]}!
+            Welcome back, {user.displayName || user.email?.split("@")[0]}!
           </h1>
           <p style={{ color: color.text, margin: "1.1rem 0 0.5rem", fontSize: "1.17rem", lineHeight: 1.7 }}>
-            Here’s your personal therapy dashboard. <br />
-            Manage sessions, access resources, and take control of your wellness.
+            Here’s your personal therapy dashboard.
           </p>
         </section>
 
