@@ -1,14 +1,23 @@
 // app/api/admin-debug/route.ts
 import { NextResponse } from "next/server";
-import { adminAuth } from "@/firebaseAdmin";
+import { getAdminAuth } from "@/firebaseAdmin";
 
 /** Admin SDK healthcheck: verifies FIREBASE_ADMIN_* envs + private key */
 export async function GET() {
     try {
-        const token = await adminAuth.createCustomToken("admin-debug-healthcheck");
-        const ok = typeof token === "string" && token.split(".").length === 3;
-        return NextResponse.json({ ok, projectId: process.env.FIREBASE_ADMIN_PROJECT_ID });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
+        const auth = getAdminAuth(); // lazily initializes
+        // lightweight call to ensure key parses and project/email match
+        await auth.listUsers(1);
+        return NextResponse.json({
+            ok: true,
+            pid: process.env.FIREBASE_PROJECT_ID,
+            email: process.env.FIREBASE_CLIENT_EMAIL,
+            hasB64: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64,
+        });
+    } catch (e: unknown) {
+        return NextResponse.json(
+            { ok: false, error: e instanceof Error ? e.message : String(e) },
+            { status: 500 }
+        );
     }
 }
