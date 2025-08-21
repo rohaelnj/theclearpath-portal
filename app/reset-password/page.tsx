@@ -84,7 +84,7 @@ export default function ResetPassword() {
       <h1 style={{ color: "#1F4142", marginBottom: "1rem" }}>Reset Your Password</h1>
 
       {/* Show loading if verifying */}
-      {status === "verifying" && <p>Setting...</p>}
+      {status === "verifying" && <p>Verifying...</p>}
 
       {/* Show form only if ready */}
       {status === "ready" && (
