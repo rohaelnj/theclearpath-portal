@@ -77,9 +77,10 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ ok: true, uid, verify_url });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: string }; message?: string };
     return NextResponse.json(
-      { ok: false, error: err?.response?.data || err?.message || "unknown error" },
+      { ok: false, error: error?.response?.data || error?.message || "unknown error" },
       { status: 500 }
     );
   }

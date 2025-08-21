@@ -73,8 +73,8 @@ export default function Signup(): React.ReactElement {
         const res = await signInWithPopup(auth, provider);
         await sendWelcome(res.user.email, res.user.displayName || undefined);
         router.replace('/portal');
-      } catch (err: any) {
-        const code = err?.code ?? '';
+      } catch (err: unknown) {
+        const code = (err as { code?: string }).code ?? '';
         if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
           await signInWithRedirect(auth, provider);
           return;
