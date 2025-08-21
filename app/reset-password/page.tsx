@@ -35,13 +35,13 @@ export default function ResetPassword() {
       setTimeout(() => {
         window.location.href = "/login";
       }, 2500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("ready");
-      setErrorMsg(
-        err?.message?.includes("weak-password")
-          ? "Password must be at least 6 characters."
-          : "❌ Failed to reset password. Try again."
-      );
+      const message =
+        err instanceof Error && err.message.includes("weak-password")
+          ? "Password must be at least 8 characters."
+          : "❌ Failed to reset password. Try again.";
+      setErrorMsg(message);
     }
   };
 
@@ -94,7 +94,7 @@ export default function ResetPassword() {
               type={showPassword ? "text" : "password"}
               placeholder="Enter new password"
               value={newPassword}
-              minLength={6}
+              minLength={8}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               style={{ paddingRight: 65 }}
