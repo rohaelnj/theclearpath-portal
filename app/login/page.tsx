@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { signInWithEmailAndPassword, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebaseClient';
+import { sendWelcome } from '@/sendWelcome';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,7 +19,12 @@ export default function LoginPage(): React.ReactElement {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
     getRedirectResult(auth)
-      .then((res) => { if (res?.user) router.replace('/portal'); })
+      .then(async (res) => {
+        if (res?.user) {
+          await sendWelcome(res.user.email, res.user.displayName || undefined);
+          router.replace('/portal');
+        }
+      })
       .catch(() => { });
     return () => unsub();
   }, [router]);
