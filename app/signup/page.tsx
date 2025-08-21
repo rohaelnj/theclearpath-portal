@@ -9,7 +9,6 @@ import { auth } from '@/firebaseClient';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
-  sendEmailVerification,
   getRedirectResult,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -95,14 +94,15 @@ export default function Signup(): React.ReactElement {
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      await sendEmailVerification(user, {
-        url: 'https://portal.theclearpath.ae/verify-email',
-        handleCodeInApp: true,
+      await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, displayName: trimmedName })
       });
 
       setSuccess('Account created. Check your email to verify.');
       // Stay signed in; verify page will push to /portal after applyActionCode
-      setTimeout(() => router.push('/verify-email/sent'), 1200);
+      router.push('/verify-email/sent');
     } catch (e: unknown) {
       const msg = errMsg(e);
       if (msg.includes('auth/email-already-in-use')) {
