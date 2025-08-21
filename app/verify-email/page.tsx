@@ -32,6 +32,15 @@ export default function VerifyEmailPage() {
         const u: User | null = a.currentUser;
         if (u) {
           await reload(u);
+          try {
+            await fetch('/api/send-welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: u.email, displayName: u.displayName }),
+            });
+          } catch (err) {
+            console.error('Failed to send welcome email', err);
+          }
           setMsg('Verified. Taking you to your dashboard…');
           window.location.replace('/portal');
         } else {
