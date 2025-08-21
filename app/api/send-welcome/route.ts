@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
         }
 
         const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email) ?? "";
+        const DISPLAY_NAME = displayName || FIRSTNAME;
 
         await axios.post(
             "https://api.brevo.com/v3/smtp/email",
@@ -38,10 +39,10 @@ export async function POST(req: NextRequest) {
                 },
                 templateId: Number(templateId),
                 params: {
-                    displayName: displayName || FIRSTNAME,
+                    displayName: DISPLAY_NAME,
                     FIRSTNAME,
-                    NAME: displayName || "",
-                    portal_url: "https://portal.theclearpath.ae/login",
+                    NAME: DISPLAY_NAME,
+                    portal_url: "https://portal.theclearpath.ae/portal",
                 },
                 subject: "Welcome to The Clear Path",
             },
@@ -49,9 +50,10 @@ export async function POST(req: NextRequest) {
         );
 
         return NextResponse.json({ ok: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
         return NextResponse.json(
-            { ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) },
+            { ok: false, code: "internal", error: "Unexpected server error", details: message },
             { status: 500 }
         );
     }
