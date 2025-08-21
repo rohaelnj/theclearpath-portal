@@ -18,6 +18,7 @@ import {
   browserLocalPersistence,
   type UserCredential,
 } from 'firebase/auth';
+import { sendWelcome } from '@/sendWelcome';
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -47,7 +48,12 @@ export default function Signup(): React.ReactElement {
 
     // Complete Google redirect flow
     getRedirectResult(auth)
-      .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
+      .then(async (res: UserCredential | null) => {
+        if (res?.user) {
+          await sendWelcome(res.user.email, res.user.displayName || undefined);
+          router.replace('/portal');
+        }
+      })
       .catch(() => { });
 
     return () => unsub();
@@ -64,7 +70,8 @@ export default function Signup(): React.ReactElement {
       provider.setCustomParameters({ prompt: 'select_account' });
 
       try {
-        await signInWithPopup(auth, provider);
+        const res = await signInWithPopup(auth, provider);
+        await sendWelcome(res.user.email, res.user.displayName || undefined);
         router.replace('/portal');
       } catch (err: any) {
         const code = err?.code ?? '';
