@@ -1,4 +1,4 @@
-// src/hooks/useRequireVerified.ts
+// src/hooks/useRequireVerified.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
