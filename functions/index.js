@@ -7,3 +7,4 @@ if (!admin.apps.length) {
 }
 
 // Intentionally export nothing to avoid deploying any functions.
+module.exports = {};
