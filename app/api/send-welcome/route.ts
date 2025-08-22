@@ -1,58 +1,80 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { adminAuth } from "@/lib/firebaseAdmin";
 
-type Body = { email: string; displayName?: string };
-
-function firstFrom(input?: string | null): string | undefined {
-    if (!input) return undefined;
-    const t = input.trim();
-    if (!t) return undefined;
-    const local = t.includes("@") ? t.split("@")[0] : t;
-    const first = local.split(/[.\s_-]+/)[0];
-    return first ? first[0].toUpperCase() + first.slice(1) : undefined;
-}
+/**
+ * POST /api/send-welcome
+ * Body: { uid: string }
+ * Sends welcome email via Brevo if not already sent (idempotent via custom claim)
+ */
 
 export async function POST(req: NextRequest) {
-    try {
-        const { email, displayName }: Body = await req.json();
-        if (!email) return NextResponse.json({ ok: false, error: "Missing email" }, { status: 400 });
-
-        const apiKey = (process.env.BREVO_API_KEY || "").trim();
-        const templateId = process.env.BREVO_TEMPLATE_ID_WELCOME || "";
-        if (!apiKey || !templateId) {
-            return NextResponse.json(
-                { ok: false, code: "missing-env", error: "Missing BREVO_API_KEY or BREVO_TEMPLATE_ID_WELCOME" },
-                { status: 500 }
-            );
-        }
-
-        const FIRSTNAME = firstFrom(displayName) ?? firstFrom(email) ?? "";
-
-        await axios.post(
-            "https://api.brevo.com/v3/smtp/email",
-            {
-                to: [{ email, name: displayName || email }],
-                sender: {
-                    email: process.env.BREVO_SENDER_EMAIL || "noreply@theclearpath.ae",
-                    name: process.env.BREVO_SENDER_NAME || "The Clear Path",
-                },
-                templateId: Number(templateId),
-                params: {
-                    displayName: displayName || FIRSTNAME,
-                    FIRSTNAME,
-                    NAME: displayName || "",
-                    portal_url: "https://portal.theclearpath.ae/login",
-                },
-                subject: "Welcome to The Clear Path",
-            },
-            { headers: { "api-key": apiKey, "Content-Type": "application/json" }, timeout: 15000 }
-        );
-
-        return NextResponse.json({ ok: true });
-    } catch (err: any) {
-        return NextResponse.json(
-            { ok: false, code: "internal", error: "Unexpected server error", details: String(err?.message || err) },
-            { status: 500 }
-        );
+  try {
+    console.log("[brevo] welcome.send start");
+    
+    const { uid } = await req.json?.() ?? {};
+    if (!uid) {
+      return NextResponse.json({ ok: false, error: "uid required" }, { status: 400 });
     }
+
+    // Get user and check if welcome already sent
+    const userRecord = await adminAuth.getUser(uid);
+    const customClaims = userRecord.customClaims || {};
+    
+    if (customClaims.welcomeSent === true) {
+      console.log("[brevo] welcome.skip - already sent");
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
+    // Send welcome email via Brevo
+    const templateId = Number(process.env.BREVO_WELCOME_TEMPLATE_ID || "1");
+    const apiKeyBrevo = process.env.BREVO_API_KEY!;
+    
+    if (!apiKeyBrevo) {
+      return NextResponse.json({ ok: false, error: "BREVO_API_KEY not set" }, { status: 500 });
+    }
+
+    const displayName = userRecord.displayName || userRecord.email?.split("@")[0] || "";
+    const email = userRecord.email;
+    
+    if (!email) {
+      return NextResponse.json({ ok: false, error: "User has no email" }, { status: 400 });
+    }
+
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        to: [{ email, name: displayName || email }],
+        templateId,
+        params: { 
+          displayName,
+          portal_url: `${process.env.NEXT_PUBLIC_APP_URL}/portal`,
+          logoUrl: process.env.EMAIL_LOGO_URL,
+          welcomePdfUrl: process.env.WELCOME_PDF_URL
+        },
+        tags: ["welcome"],
+      },
+      { 
+        headers: { 
+          "api-key": apiKeyBrevo, 
+          "Content-Type": "application/json" 
+        } 
+      }
+    );
+
+    // Set custom claim to prevent duplicate sends
+    await adminAuth.setCustomUserClaims(uid, { 
+      ...customClaims, 
+      welcomeSent: true 
+    });
+
+    console.log("[brevo] welcome.send done");
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("[brevo] welcome.send error:", err?.response?.data || err?.message);
+    return NextResponse.json(
+      { ok: false, error: err?.response?.data || err?.message || "unknown error" },
+      { status: 500 }
+    );
+  }
 }

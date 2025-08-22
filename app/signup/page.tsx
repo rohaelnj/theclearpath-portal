@@ -95,12 +95,17 @@ export default function Signup(): React.ReactElement {
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      await sendEmailVerification(user, {
-        url: 'https://portal.theclearpath.ae/verify-email',
-        handleCodeInApp: true,
+      // Send verification email via API
+      await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: user.email || '', 
+          displayName: trimmedName || user.email?.split('@')[0] || ''
+        }),
       });
 
-      setSuccess('Account created. Check your email to verify.');
+      setSuccess('Account created! Check your email to verify.');
       // Stay signed in; verify page will push to /portal after applyActionCode
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
