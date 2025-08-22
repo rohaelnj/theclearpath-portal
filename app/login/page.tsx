@@ -140,7 +140,7 @@ export default function LoginPage(): React.ReactElement {
       </form>
 
       <p style={{ marginTop: '2.2rem', color: '#1F4140' }}>
-        Don’t have an account?{' '}
+        Don't have an account?{' '}
         <Link href="/signup" style={{ color: '#1F4142', fontWeight: 'bold' }}>
           Sign up
         </Link>
