@@ -16,6 +16,11 @@ const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
 const keyB64 = process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64;
 const keyPemRaw = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
+// Declare variables at top level
+let adminAuth: Auth;
+let adminDb: Firestore;
+let app: App | null = null;
+
 if (!projectId || !clientEmail || (!keyB64 && !keyPemRaw)) {
   console.warn("Missing FIREBASE_ADMIN_* environment variables. Firebase Admin SDK will not be initialized.");
   // Create a mock implementation for development
@@ -26,9 +31,9 @@ if (!projectId || !clientEmail || (!keyB64 && !keyPemRaw)) {
   };
   const mockDb = {};
   
-  export const adminAuth = mockAuth as any;
-  export const adminDb = mockDb as any;
-  export default null as any;
+  adminAuth = mockAuth as any;
+  adminDb = mockDb as any;
+  app = null;
 } else {
   // Prefer raw PEM if present, else decode base64 → PEM
   let privateKey = keyPemRaw || Buffer.from(keyB64, "base64").toString("utf8");
@@ -39,14 +44,16 @@ if (!projectId || !clientEmail || (!keyB64 && !keyPemRaw)) {
   // Fix escaped newlines from some CI UIs
   privateKey = privateKey.replace(/\\n/g, "\n");
   
-  const app: App =
-    getApps().length > 0
-      ? getApp()
-      : initializeApp({
-        credential: cert({ projectId, clientEmail, privateKey }),
-      });
+  app = getApps().length > 0
+    ? getApp()
+    : initializeApp({
+      credential: cert({ projectId, clientEmail, privateKey }),
+    });
   
-  export const adminAuth: Auth = getAuth(app);
-  export const adminDb: Firestore = getFirestore(app);
-  export default app;
+  adminAuth = getAuth(app);
+  adminDb = getFirestore(app);
 }
+
+// Export at top level
+export { adminAuth, adminDb };
+export default app;
