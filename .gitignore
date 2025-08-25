@@ -58,3 +58,11 @@ key.pem
 key.pem.b64
 key.pem.save
 key.b64
+
+# ignore local env backups
+.env*.bak*
+*.bak
+
+# ignore local env backups
+.env*.bak*
+*.bak

@@ -1,159 +1,196 @@
-'use client';
+// app/login/page.tsx
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/firebaseClient';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import GoogleButton from '../components/button';
+import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { auth } from "@/firebaseClient";
+import {
+  setPersistence,
+  browserLocalPersistence,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
+  type UserCredential,
+} from "firebase/auth";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage(): React.ReactElement {
-  const router = useRouter();
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+type LogEntry = { ts: string; msg: string; data?: unknown };
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
-    getRedirectResult(auth)
-      .then((res) => { if (res?.user) router.replace('/portal'); })
-      .catch(() => { });
-    return () => unsub();
-  }, [router]);
-
-  function mapError(code?: string): string {
-    switch (code) {
-      case 'auth/user-not-found': return 'No account found with this email.';
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential': return 'Incorrect password. Please try again.';
-      case 'auth/invalid-email': return 'Please enter a valid email address.';
-      case 'auth/too-many-requests': return 'Too many attempts. Try again later.';
-      default: return 'Something went wrong. Please try again.';
-    }
+declare global {
+  interface Window {
+    __grrLogs?: LogEntry[];
   }
+}
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>): Promise<void> {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
+function log(msg: string, data?: unknown) {
+  const entry: LogEntry = { ts: new Date().toISOString(), msg, data };
+  if (!window.__grrLogs) window.__grrLogs = [];
+  window.__grrLogs.push(entry);
+  try {
+    localStorage.setItem("grrLogs", JSON.stringify(window.__grrLogs));
+  } catch { }
+  // eslint-disable-next-line no-console
+  console.log(msg, data);
+}
 
-      if (!user.emailVerified) {
-        const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '';
-        void fetch('/api/send-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email || '', displayName }),
-        });
-        router.replace('/verify-email/sent');
-        return;
+function safeUC(uc: UserCredential | null) {
+  if (!uc) return null;
+  const u = uc.user;
+  return {
+    providerId: uc.providerId,
+    operationType: uc.operationType,
+    user: u
+      ? {
+        uid: u.uid,
+        email: u.email,
+        emailVerified: u.emailVerified,
+        providers: u.providerData.map((p) => p.providerId),
       }
+      : null,
+  };
+}
 
-      router.push('/portal');
-    } catch (err) {
-      const code = (err as { code?: string })?.code;
-      setError(mapError(code));
-    } finally {
-      setLoading(false);
-    }
-  }
+async function requestVerification(email: string) {
+  try {
+    await fetch("/api/send-verification", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch { }
+}
 
+/** Page export: wraps the inner component that uses useSearchParams in Suspense */
+export default function LoginPage() {
   return (
-    <main
-      style={{
-        backgroundColor: '#DFD6C7',
-        minHeight: '100vh',
-        fontFamily: "'Playfair Display', serif",
-        padding: '2rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <div style={{ marginBottom: '2rem' }}>
-        <Image src="/logo.png" alt="The Clear Path logo" width={100} height={100} priority />
-      </div>
-
-      <h1 style={{ color: '#1F4142', fontSize: '2.1rem', marginBottom: '1rem', textAlign: 'center' }}>
-        Log In to Your Account
-      </h1>
-
-      <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 400 }}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="username"
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          style={inputStyle}
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor: '#1F4142',
-            color: '#DFD6C7',
-            border: 'none',
-            borderRadius: 6,
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            marginBottom: 10,
-            fontSize: '1.06rem',
-          }}
-        >
-          {loading ? 'Logging In...' : 'Log In'}
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', margin: '6px 0 10px 0' }}>
-          <div style={{ flex: 1, height: 1, background: '#ddd' }} />
-          <span style={{ margin: '0 14px', color: '#444', fontWeight: 700, fontSize: '1.08rem', letterSpacing: '0.5px' }}>
-            or
-          </span>
-          <div style={{ flex: 1, height: 1, background: '#ddd' }} />
-        </div>
-
-        <GoogleButton />
-
-        <div style={{ marginTop: '0.8rem', textAlign: 'right' }}>
-          <a href="/forgot-password" style={{ fontSize: 14, color: '#1F4142', textDecoration: 'underline' }}>
-            Forgot password?
-          </a>
-        </div>
-
-        {error && <p style={{ marginTop: '1rem', color: '#B00020', textAlign: 'center' }}>{error}</p>}
-      </form>
-
-      <p style={{ marginTop: '2.2rem', color: '#1F4140' }}>
-        Don’t have an account?{' '}
-        <Link href="/signup" style={{ color: '#1F4142', fontWeight: 'bold' }}>
-          Sign up
-        </Link>
-      </p>
-    </main>
+    <Suspense fallback={<main style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>Loading…</main>}>
+      <LoginInner />
+    </Suspense>
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.75rem',
-  marginBottom: '1rem',
-  borderRadius: 6,
-  border: '1px solid #ccc',
-  fontSize: '1rem',
-};
+/** All logic that touches useSearchParams lives here */
+function LoginInner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const next = sp.get("next") || "/portal";
+
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      await setPersistence(auth, browserLocalPersistence).catch(() => { });
+      log("href", location.href);
+      try {
+        const rr = await getRedirectResult(auth);
+        log("getRedirectResult", safeUC(rr));
+      } catch (e) {
+        log("getRedirectResult error", String((e as Error)?.message || e));
+      }
+      log(
+        "currentUser",
+        auth.currentUser
+          ? {
+            email: auth.currentUser.email,
+            providers: auth.currentUser.providerData.map((p) => p.providerId),
+            verified: auth.currentUser.emailVerified,
+          }
+          : null
+      );
+      try {
+        log("sessionStorage keys", Object.keys(sessionStorage || {}));
+        log("localStorage keys", Object.keys(localStorage || {}));
+      } catch { }
+
+      const u = auth.currentUser;
+      if (u && (u.emailVerified || u.providerData.some((p) => p.providerId === "google.com"))) {
+        router.replace(next);
+      }
+    })();
+
+    const unsub = onAuthStateChanged(auth, (u) => {
+      log(
+        "onAuthStateChanged",
+        u ? { email: u.email, verified: u.emailVerified, providers: u.providerData.map((p) => p.providerId) } : null
+      );
+      if (u && (u.emailVerified || u.providerData.some((p) => p.providerId === "google.com"))) {
+        router.replace(next);
+      }
+    });
+    return () => unsub();
+  }, [router, next]);
+
+  async function onEmail(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErr(null);
+    setBusy(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pw);
+      log("emailSignIn", { email: cred.user.email, verified: cred.user.emailVerified });
+      if (!cred.user.emailVerified) {
+        await requestVerification(email);
+        router.replace("/verify-email/sent");
+        return;
+      }
+      router.replace(next);
+    } catch (e: any) {
+      setErr(e?.message || "Login failed.");
+      log("emailSignIn error", String(e?.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onGoogle() {
+    setErr(null);
+    setBusy(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      log("signInWithRedirect start");
+      await signInWithRedirect(auth, provider);
+    } catch (e: any) {
+      setErr(e?.message || "Google sign-in failed.");
+      log("signInWithRedirect error", String(e?.message || e));
+      setBusy(false);
+    }
+  }
+
+  function downloadLogs() {
+    const logs = window.__grrLogs || [];
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `login-google-debug-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <main style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>
+      <h1>Log in</h1>
+      {sp.get("verified") && <p>Verified. Please sign in.</p>}
+      {err && <p style={{ color: "#b00020" }}>{err}</p>}
+      <form onSubmit={onEmail}>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required style={{ width: "100%", margin: "8px 0", padding: 10 }} />
+        <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Password" required style={{ width: "100%", margin: "8px 0", padding: 10 }} />
+        <button type="submit" disabled={busy} style={{ width: "100%", padding: 12 }}>Continue</button>
+      </form>
+      <div style={{ height: 12 }} />
+      <button type="button" onClick={onGoogle} disabled={busy} style={{ width: "100%", padding: 12 }}>
+        Continue with Google
+      </button>
+      <div style={{ height: 8 }} />
+      <button type="button" onClick={downloadLogs} style={{ width: "100%", padding: 10 }}>
+        Download debug log
+      </button>
+    </main>
+  );
+}
