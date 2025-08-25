@@ -1,7 +1,9 @@
 // app/login/page.tsx
+export const dynamic = "force-dynamic";
 "use client";
 
 import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/firebaseClient";
 import {
   setPersistence,
@@ -9,27 +11,20 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithRedirect,
+  signInWithPopup,
   getRedirectResult,
   onAuthStateChanged,
   type UserCredential,
 } from "firebase/auth";
-import { useRouter, useSearchParams } from "next/navigation";
 
 type LogEntry = { ts: string; msg: string; data?: unknown };
-
-declare global {
-  interface Window {
-    __grrLogs?: LogEntry[];
-  }
-}
+declare global { interface Window { __grrLogs?: LogEntry[] } }
 
 function log(msg: string, data?: unknown) {
   const entry: LogEntry = { ts: new Date().toISOString(), msg, data };
-  if (!window.__grrLogs) window.__grrLogs = [];
+  window.__grrLogs = window.__grrLogs || [];
   window.__grrLogs.push(entry);
-  try {
-    localStorage.setItem("grrLogs", JSON.stringify(window.__grrLogs));
-  } catch { }
+  try { localStorage.setItem("grrLogs", JSON.stringify(window.__grrLogs)); } catch { }
   // eslint-disable-next-line no-console
   console.log(msg, data);
 }
@@ -40,14 +35,10 @@ function safeUC(uc: UserCredential | null) {
   return {
     providerId: uc.providerId,
     operationType: uc.operationType,
-    user: u
-      ? {
-        uid: u.uid,
-        email: u.email,
-        emailVerified: u.emailVerified,
-        providers: u.providerData.map((p) => p.providerId),
-      }
-      : null,
+    user: u ? {
+      uid: u.uid, email: u.email, emailVerified: u.emailVerified,
+      providers: u.providerData.map(p => p.providerId),
+    } : null,
   };
 }
 
@@ -61,8 +52,7 @@ async function requestVerification(email: string) {
   } catch { }
 }
 
-/** Page export: wraps the inner component that uses useSearchParams in Suspense */
-export default function LoginPage() {
+export default function Page() {
   return (
     <Suspense fallback={<main style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>Loading…</main>}>
       <LoginInner />
@@ -70,7 +60,6 @@ export default function LoginPage() {
   );
 }
 
-/** All logic that touches useSearchParams lives here */
 function LoginInner() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -85,39 +74,26 @@ function LoginInner() {
     (async () => {
       await setPersistence(auth, browserLocalPersistence).catch(() => { });
       log("href", location.href);
-      try {
-        const rr = await getRedirectResult(auth);
-        log("getRedirectResult", safeUC(rr));
-      } catch (e) {
-        log("getRedirectResult error", String((e as Error)?.message || e));
-      }
-      log(
-        "currentUser",
-        auth.currentUser
-          ? {
-            email: auth.currentUser.email,
-            providers: auth.currentUser.providerData.map((p) => p.providerId),
-            verified: auth.currentUser.emailVerified,
-          }
-          : null
-      );
-      try {
-        log("sessionStorage keys", Object.keys(sessionStorage || {}));
-        log("localStorage keys", Object.keys(localStorage || {}));
-      } catch { }
+      try { const rr = await getRedirectResult(auth); log("getRedirectResult", safeUC(rr)); }
+      catch (e) { log("getRedirectResult error", String((e as Error)?.message || e)); }
+      log("currentUser", auth.currentUser ? {
+        email: auth.currentUser.email,
+        providers: auth.currentUser.providerData.map(p => p.providerId),
+        verified: auth.currentUser.emailVerified,
+      } : null);
 
       const u = auth.currentUser;
-      if (u && (u.emailVerified || u.providerData.some((p) => p.providerId === "google.com"))) {
+      if (u && (u.emailVerified || u.providerData.some(p => p.providerId === "google.com"))) {
         router.replace(next);
       }
     })();
 
     const unsub = onAuthStateChanged(auth, (u) => {
-      log(
-        "onAuthStateChanged",
-        u ? { email: u.email, verified: u.emailVerified, providers: u.providerData.map((p) => p.providerId) } : null
-      );
-      if (u && (u.emailVerified || u.providerData.some((p) => p.providerId === "google.com"))) {
+      log("onAuthStateChanged", u ? {
+        email: u.email, verified: u.emailVerified,
+        providers: u.providerData.map(p => p.providerId),
+      } : null);
+      if (u && (u.emailVerified || u.providerData.some(p => p.providerId === "google.com"))) {
         router.replace(next);
       }
     });
@@ -151,11 +127,25 @@ function LoginInner() {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
+
+      // Try popup first for SPA. Fall back to redirect on blockers.
+      try {
+        log("signInWithPopup start");
+        await signInWithPopup(auth, provider);
+        return; // onAuthStateChanged will route
+      } catch (err: any) {
+        const code = err?.code ?? "";
+        if (code !== "auth/popup-blocked" && code !== "auth/operation-not-supported-in-this-environment") {
+          throw err;
+        }
+        log("Popup unavailable, falling back to redirect");
+      }
+
       log("signInWithRedirect start");
       await signInWithRedirect(auth, provider);
     } catch (e: any) {
       setErr(e?.message || "Google sign-in failed.");
-      log("signInWithRedirect error", String(e?.message || e));
+      log("google sign-in error", String(e?.message || e));
       setBusy(false);
     }
   }
@@ -165,12 +155,8 @@ function LoginInner() {
     const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `login-google-debug-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `login-google-debug-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 
   return (
