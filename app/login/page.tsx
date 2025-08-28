@@ -1,7 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  getRedirectResult,
+  onAuthStateChanged,
+  getAdditionalUserInfo,
+  signOut,
+} from 'firebase/auth';
 import { auth } from '@/firebaseClient';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -17,9 +23,36 @@ export default function LoginPage(): React.ReactElement {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
-    getRedirectResult(auth)
-      .then((res) => { if (res?.user) router.replace('/portal'); })
-      .catch(() => { });
+
+    (async () => {
+      try {
+        const res = await getRedirectResult(auth);
+        if (!res) return;
+
+        const info = getAdditionalUserInfo(res);
+        const em = res.user.email ?? '';
+
+        if (info?.isNewUser) {
+          try { await res.user.delete(); } catch { }
+          await signOut(auth);
+          setError('Please sign up first.');
+          router.replace(`/signup?email=${encodeURIComponent(em)}&from=google`);
+          return;
+        }
+
+        router.replace('/portal');
+      } catch (e: any) {
+        const code = e?.code as string | undefined;
+        if (code === 'auth/account-exists-with-different-credential') {
+          setError('This email is registered with a different sign-in method. Use email/password, then link Google from settings.');
+        } else if (code === 'auth/unauthorized-domain') {
+          setError('This domain is not authorized for Google sign-in.');
+        } else {
+          setError('Google sign-in failed. Please try again.');
+        }
+      }
+    })();
+
     return () => unsub();
   }, [router]);
 
@@ -40,7 +73,6 @@ export default function LoginPage(): React.ReactElement {
     setLoading(true);
     try {
       const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
-
       if (!user.emailVerified) {
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '';
         void fetch('/api/send-verification', {
@@ -51,7 +83,6 @@ export default function LoginPage(): React.ReactElement {
         router.replace('/verify-email/sent');
         return;
       }
-
       router.push('/portal');
     } catch (err) {
       const code = (err as { code?: string })?.code;
@@ -84,6 +115,7 @@ export default function LoginPage(): React.ReactElement {
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 400 }}>
         <input
           type="email"
+          name="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -93,6 +125,7 @@ export default function LoginPage(): React.ReactElement {
         />
         <input
           type="password"
+          name="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -140,7 +173,7 @@ export default function LoginPage(): React.ReactElement {
       </form>
 
       <p style={{ marginTop: '2.2rem', color: '#1F4140' }}>
-        Don't have an account?{' '}
+        Don&apos;t have an account?{' '}
         <Link href="/signup" style={{ color: '#1F4142', fontWeight: 'bold' }}>
           Sign up
         </Link>

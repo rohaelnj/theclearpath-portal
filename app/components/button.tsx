@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 import { auth } from '@/firebaseClient';
-import { GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+} from 'firebase/auth';
 
 export default function GoogleButton(): React.ReactElement {
   const [loading, setLoading] = useState(false);
@@ -11,12 +15,20 @@ export default function GoogleButton(): React.ReactElement {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
-      await signInWithRedirect(auth, provider);
-    } catch (err) {
-      console.error('Google sign-in failed:', err);
-      alert('Google sign-in failed. Please try again.');
-      setLoading(false);
+      // Try popup first (works on Vercel, no /__/auth/handler needed)
+      await signInWithPopup(auth, provider);
+      // success → auth state listener on the page will route to /portal
+    } catch (e: any) {
+      // Fallback to redirect for browsers that block popups
+      if (e?.code === 'auth/popup-blocked' || e?.code === 'auth/cancelled-popup-request') {
+        await signInWithRedirect(auth, provider);
+      } else {
+        console.error('Google sign-in failed:', e);
+        alert('Google sign-in failed. Please try again.');
+        setLoading(false);
+      }
     }
   };
 
@@ -31,7 +43,7 @@ export default function GoogleButton(): React.ReactElement {
         backgroundColor: '#fff',
         color: '#1F4142',
         fontWeight: 'bold',
-        border: '1.5px solid #1F4142', // <-- fixed
+        border: '1.5px solid #1F4142',
         borderRadius: 6,
         cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: '1.05rem',
