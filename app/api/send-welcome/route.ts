@@ -1,80 +1,69 @@
+// app/api/send-welcome/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { adminAuth } from "@/lib/firebaseAdmin";
-
-/**
- * POST /api/send-welcome
- * Body: { uid: string }
- * Sends welcome email via Brevo if not already sent (idempotent via custom claim)
- */
+import { getAdminAuth } from "@/lib/firebaseAdmin";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[brevo] welcome.send start");
-    
-    const { uid } = await req.json?.() ?? {};
-    if (!uid) {
-      return NextResponse.json({ ok: false, error: "uid required" }, { status: 400 });
+    const { email } = (await req.json()) as { email?: string };
+    const norm = email?.trim().toLowerCase() || "";
+    if (!norm) return NextResponse.json({ error: "email-required" }, { status: 400 });
+
+    // Optional referer guard to reduce abuse
+    const referer = req.headers.get("referer") || "";
+    if (!referer.includes("/portal")) {
+      return NextResponse.json({ error: "bad-referer" }, { status: 400 });
     }
 
-    // Get user and check if welcome already sent
-    const userRecord = await adminAuth.getUser(uid);
-    const customClaims = userRecord.customClaims || {};
-    
-    if (customClaims.welcomeSent === true) {
-      console.log("[brevo] welcome.skip - already sent");
-      return NextResponse.json({ ok: true, skipped: true });
+    const auth = getAdminAuth();
+    const user = await auth.getUserByEmail(norm).catch((e: any) => {
+      const code = e?.code || e?.errorInfo?.code;
+      if (code === "auth/user-not-found") return null;
+      return Promise.reject(e);
+    });
+    if (!user) return NextResponse.json({ error: "user-not-found" }, { status: 404 });
+    if (!user.emailVerified) return NextResponse.json({ error: "not-verified" }, { status: 409 });
+
+    const claims = (user.customClaims as Record<string, unknown>) || {};
+    if (claims.welcomeSent === true) return NextResponse.json({ ok: true, alreadySent: true });
+
+    const appUrl = process.env.PORTAL_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://portal.theclearpath.ae";
+    const apiKey = process.env.BREVO_API_KEY || "";
+    const templateId =
+      Number(process.env.BREVO_WELCOME_TEMPLATE_ID ?? process.env.BREVO_TEMPLATE_ID_WELCOME ?? NaN);
+    if (!apiKey || !Number.isFinite(templateId)) {
+      return NextResponse.json({ error: "brevo-env-missing" }, { status: 500 });
     }
 
-    // Send welcome email via Brevo
-    const templateId = Number(process.env.BREVO_WELCOME_TEMPLATE_ID || "1");
-    const apiKeyBrevo = process.env.BREVO_API_KEY!;
-    
-    if (!apiKeyBrevo) {
-      return NextResponse.json({ ok: false, error: "BREVO_API_KEY not set" }, { status: 500 });
-    }
-
-    const displayName = userRecord.displayName || userRecord.email?.split("@")[0] || "";
-    const email = userRecord.email;
-    
-    if (!email) {
-      return NextResponse.json({ ok: false, error: "User has no email" }, { status: 400 });
-    }
+    const portal = `${appUrl}/portal`;
+    const logoUrl = process.env.MAIL_LOGO_URL || `${appUrl}/logo.png`;
+    const onboarding = process.env.WELCOME_PDF_URL; // optional
 
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
-        to: [{ email, name: displayName || email }],
+        to: [{ email: norm, name: user.displayName || norm.split("@")[0] }],
         templateId,
-        params: { 
-          displayName,
-          portal_url: `${process.env.NEXT_PUBLIC_APP_URL}/portal`,
-          logoUrl: process.env.EMAIL_LOGO_URL,
-          welcomePdfUrl: process.env.WELCOME_PDF_URL
+        params: {
+          displayName: user.displayName || norm.split("@")[0],
+          portal_url: portal,
+          logoUrl,
+          brand_color: "#1F4142",
+          onboarding_url: onboarding,
         },
-        tags: ["welcome"],
+        headers: { "X-Mail-Tag": "welcome-email" },
       },
-      { 
-        headers: { 
-          "api-key": apiKeyBrevo, 
-          "Content-Type": "application/json" 
-        } 
-      }
+      { headers: { "api-key": apiKey, "content-type": "application/json" }, timeout: 15000 }
     );
 
-    // Set custom claim to prevent duplicate sends
-    await adminAuth.setCustomUserClaims(uid, { 
-      ...customClaims, 
-      welcomeSent: true 
-    });
+    await auth.setCustomUserClaims(user.uid, { ...claims, welcomeSent: true });
 
-    console.log("[brevo] welcome.send done");
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    console.error("[brevo] welcome.send error:", err?.response?.data || err?.message);
-    return NextResponse.json(
-      { ok: false, error: err?.response?.data || err?.message || "unknown error" },
-      { status: 500 }
-    );
+  } catch (e: any) {
+    return NextResponse.json({ error: "internal", detail: String(e?.response?.data || e?.message || e) }, { status: 500 });
   }
+}
+
+export function GET() {
+  return NextResponse.json({ error: "method-not-allowed" }, { status: 405 });
 }
