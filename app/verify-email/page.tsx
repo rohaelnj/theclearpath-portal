@@ -1,6 +1,6 @@
-// app/verify-email/page.tsx  (top lines only changed)
-export const dynamic = 'force-dynamic';
+// app/verify-email/page.tsx
 'use client';
+export const dynamic = 'force-dynamic';
 
 import React from 'react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -19,7 +19,6 @@ function getClientAuth() {
   return getAuth(app);
 }
 
-// Extract ?oobCode=… directly or nested in continueUrl
 function extractOobCode(): string {
   try {
     const sp = new URLSearchParams(window.location.search);
@@ -108,7 +107,9 @@ export default function VerifyEmailPage(): React.ReactElement {
           {status === 'error' && error}
         </p>
 
-        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">Verification code</label>
+        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">
+          Verification code
+        </label>
         <input
           id="code"
           value={code}
