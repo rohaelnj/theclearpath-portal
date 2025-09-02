@@ -1,9 +1,19 @@
+// app/auth/callback/CallbackClient.tsx  (full file)
 'use client';
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Route } from "next";
 import { signInWithCustomToken } from "firebase/auth";
 import { auth } from "@/firebaseClient";
+
+function normalizeNext(raw: string | null): Route {
+    const fallback: Route = "/portal";
+    if (!raw) return fallback;
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return fallback;
+    const path = raw.startsWith("/") ? raw : `/${raw}`;
+    return path.replace(/[/\\]+/g, "/") as Route;
+}
 
 export default function CallbackClient(): React.ReactElement {
     const router = useRouter();
@@ -12,10 +22,11 @@ export default function CallbackClient(): React.ReactElement {
 
     useEffect(() => {
         const token = params.get("t");
-        const next = params.get("next") || "/portal";
+        const next = normalizeNext(params.get("next"));
+        const fail: Route = "/login?verify=fail";
 
         if (!token) {
-            router.replace("/login?verify=fail");
+            router.replace(fail);
             return;
         }
 
@@ -25,7 +36,7 @@ export default function CallbackClient(): React.ReactElement {
                 router.replace(next);
             } catch (e) {
                 setErr((e as Error).message);
-                router.replace("/login?verify=fail");
+                router.replace(fail);
             }
         })();
     }, [params, router]);

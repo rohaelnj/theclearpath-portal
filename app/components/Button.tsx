@@ -1,39 +1,46 @@
 // app/components/Button.tsx
 'use client';
 
-import * as React from 'react';
+import React from 'react';
 import Link from 'next/link';
+import type { UrlObject } from 'url';
+import type { Route } from 'next';
 
-type Props = {
-  href?: string;
-  children: React.ReactNode;
-  className?: string;
-  type?: 'button' | 'submit' | 'reset';
-  onClick?: React.ButtonHTMLAttributes<HTMLButtonElement>['onClick'];
-  disabled?: boolean;
+type HrefInput = Route | UrlObject | string;
+
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  href?: HrefInput;
 };
 
-const base =
-  'inline-flex items-center justify-center rounded-md px-5 py-3 font-semibold transition ' +
-  'bg-[#1F4142] text-[#DFD6C7] hover:opacity-90 disabled:opacity-60 disabled:pointer-events-none';
+function toHref(href: HrefInput): Route | UrlObject {
+  if (typeof href === 'string') {
+    const path = href.startsWith('/') ? href : `/${href}`;
+    return path as Route;
+  }
+  return href;
+}
 
 export default function Button({
   href,
-  children,
   className = '',
-  type = 'button',
-  onClick,
-  disabled,
-}: Props) {
+  children,
+  ...rest
+}: ButtonProps): React.ReactElement {
+  const base =
+    'inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium disabled:opacity-50';
+
   if (href) {
     return (
-      <Link href={href} className={`${base} ${className}`}>
+      <Link href={toHref(href)} className={`${base} ${className}`}>
         {children}
       </Link>
     );
   }
+
+  const { type = 'button', ...btnProps } = rest;
+
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${className}`}>
+    <button type={type} className={`${base} ${className}`} {...btnProps}>
       {children}
     </button>
   );
