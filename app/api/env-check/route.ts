@@ -1,39 +1,34 @@
 // app/api/env-check/route.ts
-import { NextResponse } from "next/server";
-
-function has(v?: string) { return v != null && v !== ""; }
+import { NextResponse } from 'next/server';
 
 export async function GET() {
-    const adminKeyB64 = process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64 || "";
-    let adminKeyDecodes = false;
-    try {
-        const dec = Buffer.from(adminKeyB64, "base64").toString("utf8");
-        adminKeyDecodes = dec.includes("BEGIN PRIVATE KEY") && dec.includes("END PRIVATE KEY");
-    } catch { adminKeyDecodes = false; }
+    const clientProject = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || null;
+    const adminProject = process.env.FIREBASE_ADMIN_PROJECT_ID || null;
+    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || null;
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || null;
 
-    return NextResponse.json({
-        // Public
-        NEXT_PUBLIC_APP_URL: has(process.env.NEXT_PUBLIC_APP_URL),
-        NEXT_PUBLIC_FIREBASE_API_KEY: has(process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: has(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: has(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
-        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: has(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
-        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: has(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
-        NEXT_PUBLIC_FIREBASE_APP_ID: has(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
-        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: has(process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID),
+    const apiKeyTail =
+        apiKey ? `${apiKey.slice(0, 6)}...${apiKey.slice(-6)}` : null;
 
-        // Server
-        FIREBASE_ADMIN_PROJECT_ID: has(process.env.FIREBASE_ADMIN_PROJECT_ID),
-        FIREBASE_ADMIN_CLIENT_EMAIL: has(process.env.FIREBASE_ADMIN_CLIENT_EMAIL),
-        FIREBASE_ADMIN_PRIVATE_KEY_B64: has(process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64),
-        FIREBASE_ADMIN_PRIVATE_KEY_B64_decodes: adminKeyDecodes,
+    const out = {
+        clientProject,                 // must equal adminProject
+        adminProject,                  // must equal clientProject
+        sameProject: clientProject && adminProject ? clientProject === adminProject : false,
+        authDomain,                    // should be <project>.firebaseapp.com or your custom domain
+        apiKeyTail,                    // public key, redacted for display
+        adminEnv: {
+            clientEmail: !!process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+            privateKeyB64: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY_B64,
+            privateKey: !!process.env.FIREBASE_ADMIN_PRIVATE_KEY,
+        },
+        brevoEnv: {
+            apiKey: !!process.env.BREVO_API_KEY,
+            senderEmail: !!process.env.BREVO_SENDER_EMAIL,
+            senderName: !!process.env.BREVO_SENDER_NAME,
+            templateVerify: !!process.env.BREVO_TEMPLATE_ID_VERIFY,
+            templateWelcome: !!process.env.BREVO_TEMPLATE_ID_WELCOME,
+        },
+    };
 
-        // Brevo
-        BREVO_API_KEY: has(process.env.BREVO_API_KEY),
-        BREVO_SENDER_EMAIL: has(process.env.BREVO_SENDER_EMAIL),
-        BREVO_SENDER_NAME: has(process.env.BREVO_SENDER_NAME),
-        BREVO_TEMPLATE_ID_VERIFY: has(process.env.BREVO_TEMPLATE_ID_VERIFY),
-        BREVO_TEMPLATE_ID_WELCOME: has(process.env.BREVO_TEMPLATE_ID_WELCOME),
-        WELCOME_PDF_URL: has(process.env.WELCOME_PDF_URL),
-    });
+    return NextResponse.json(out, { status: 200 });
 }
