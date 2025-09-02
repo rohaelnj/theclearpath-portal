@@ -1,4 +1,4 @@
-// middleware.ts
+// middleware.ts  (place at repo root, beside next.config.ts)
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -26,7 +26,6 @@ const authCsp = [
     "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.gstatic.com https://firestore.googleapis.com https://firebasestorage.googleapis.com",
     "frame-ancestors 'self'",
     "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.gstatic.com",
-    // IMPORTANT: include BOTH
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com",
     "worker-src 'self' blob:",
 ].join('; ');
@@ -42,7 +41,7 @@ export function middleware(req: NextRequest) {
 
     const res = NextResponse.next();
     res.headers.set('Content-Security-Policy', isAuth ? authCsp : defaultCsp);
-    res.headers.set('x-csp-from', 'middleware-v1'); // marker for verification
+    res.headers.set('x-csp-from', 'middleware-v1');
     return res;
 }
 
