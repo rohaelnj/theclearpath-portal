@@ -1,4 +1,5 @@
-// app/verify-email/page.tsx
+// app/verify-email/page.tsx  (top lines only changed)
+export const dynamic = 'force-dynamic';
 'use client';
 
 import React from 'react';
@@ -76,7 +77,6 @@ export default function VerifyEmailPage(): React.ReactElement {
     try {
       await applyActionCode(auth, code);
 
-      // Fire-and-forget welcome; server enforces verified + idempotent
       if (email) {
         fetch('/api/send-welcome', {
           method: 'POST',
@@ -108,9 +108,7 @@ export default function VerifyEmailPage(): React.ReactElement {
           {status === 'error' && error}
         </p>
 
-        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">
-          Verification code
-        </label>
+        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">Verification code</label>
         <input
           id="code"
           value={code}

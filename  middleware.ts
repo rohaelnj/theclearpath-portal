@@ -1,4 +1,4 @@
-// middleware.ts  (place at repo root, beside next.config.ts)
+// middleware.ts  (put beside package.json and next.config.ts)
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -40,8 +40,9 @@ export function middleware(req: NextRequest) {
         p === '/auth/callback';
 
     const res = NextResponse.next();
+    res.headers.delete('Content-Security-Policy'); // ensure ours wins
     res.headers.set('Content-Security-Policy', isAuth ? authCsp : defaultCsp);
-    res.headers.set('x-csp-from', 'middleware-v1');
+    res.headers.set('x-csp-from', 'middleware-v2'); // marker
     return res;
 }
 
