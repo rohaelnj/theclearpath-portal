@@ -1,58 +1,94 @@
+// app/login/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
-  signInWithEmailAndPassword,
-  getRedirectResult,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   getAdditionalUserInfo,
   signOut,
 } from 'firebase/auth';
 import { auth } from '@/firebaseClient';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import GoogleButton from '../components/button';
+
+function GoogleButton({ onError }: { onError: (m: string) => void }) {
+  const [loading, setLoading] = React.useState(false);
+  const router = useRouter();
+
+  const handleGoogle = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const cred = await signInWithPopup(auth, provider);
+
+      const info = getAdditionalUserInfo(cred);
+      const email = cred.user.email ?? '';
+
+      // If brand-new from Google while on /login → force Sign Up first
+      if (info?.isNewUser) {
+        try { await cred.user.delete(); } catch { }
+        await signOut(auth);
+        onError('Please sign up first.');
+        router.replace(`/signup?email=${encodeURIComponent(email)}&from=google`);
+        return;
+      }
+
+      // Existing user → go to portal
+      router.replace('/portal');
+    } catch (e) {
+      console.error(e);
+      onError('Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleGoogle}
+      disabled={loading}
+      style={{
+        width: '100%',
+        padding: '0.85rem',
+        backgroundColor: '#fff',
+        color: '#1F4142',
+        fontWeight: 'bold',
+        border: '1.5px solid #1F4142',
+        borderRadius: 6,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        fontSize: '1.05rem',
+        marginTop: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.7rem',
+        opacity: loading ? 0.7 : 1,
+      }}
+    >
+      <img src="/google.svg" alt="Google" style={{ width: 24, height: 24 }} />
+      {loading ? 'Please wait…' : 'Continue with Google'}
+    </button>
+  );
+}
 
 export default function LoginPage(): React.ReactElement {
   const router = useRouter();
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => { if (u) router.replace('/portal'); });
-
-    (async () => {
-      try {
-        const res = await getRedirectResult(auth);
-        if (!res) return;
-
-        const info = getAdditionalUserInfo(res);
-        const em = res.user.email ?? '';
-
-        if (info?.isNewUser) {
-          try { await res.user.delete(); } catch { }
-          await signOut(auth);
-          setError('Please sign up first.');
-          router.replace(`/signup?email=${encodeURIComponent(em)}&from=google`);
-          return;
-        }
-
-        router.replace('/portal');
-      } catch (e: any) {
-        const code = e?.code as string | undefined;
-        if (code === 'auth/account-exists-with-different-credential') {
-          setError('This email is registered with a different sign-in method. Use email/password, then link Google from settings.');
-        } else if (code === 'auth/unauthorized-domain') {
-          setError('This domain is not authorized for Google sign-in.');
-        } else {
-          setError('Google sign-in failed. Please try again.');
-        }
-      }
-    })();
-
+  React.useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) router.replace('/portal');
+    });
     return () => unsub();
   }, [router]);
 
@@ -67,12 +103,13 @@ export default function LoginPage(): React.ReactElement {
     }
   }
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
+
       if (!user.emailVerified) {
         const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '';
         void fetch('/api/send-verification', {
@@ -83,10 +120,10 @@ export default function LoginPage(): React.ReactElement {
         router.replace('/verify-email/sent');
         return;
       }
+
       router.push('/portal');
-    } catch (err) {
-      const code = (err as { code?: string })?.code;
-      setError(mapError(code));
+    } catch (err: any) {
+      setError(mapError(err?.code));
     } finally {
       setLoading(false);
     }
@@ -114,8 +151,8 @@ export default function LoginPage(): React.ReactElement {
 
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 400 }}>
         <input
-          type="email"
           name="email"
+          type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -124,8 +161,8 @@ export default function LoginPage(): React.ReactElement {
           style={inputStyle}
         />
         <input
-          type="password"
           name="password"
+          type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -161,7 +198,7 @@ export default function LoginPage(): React.ReactElement {
           <div style={{ flex: 1, height: 1, background: '#ddd' }} />
         </div>
 
-        <GoogleButton />
+        <GoogleButton onError={setError} />
 
         <div style={{ marginTop: '0.8rem', textAlign: 'right' }}>
           <a href="/forgot-password" style={{ fontSize: 14, color: '#1F4142', textDecoration: 'underline' }}>

@@ -1,69 +1,48 @@
 // app/api/send-welcome/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
-import { getAdminAuth } from "@/lib/firebaseAdmin";
+import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
+import { getAdminAuth } from '@/lib/firebaseAdmin';
+
+type Body = { uid?: string; email?: string };
+type ApiOk = { ok: true; sent: boolean };
+type ApiErr = { ok: false; error: string };
+
+const bad = (m: string, s = 400) => NextResponse.json<ApiErr>({ ok: false, error: m }, { status: s });
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = (await req.json()) as { email?: string };
-    const norm = email?.trim().toLowerCase() || "";
-    if (!norm) return NextResponse.json({ error: "email-required" }, { status: 400 });
-
-    // Optional referer guard to reduce abuse
-    const referer = req.headers.get("referer") || "";
-    if (!referer.includes("/portal")) {
-      return NextResponse.json({ error: "bad-referer" }, { status: 400 });
-    }
+    const { uid, email }: Body = await req.json();
+    if (!uid && !email) return bad('uid-or-email-required');
 
     const auth = getAdminAuth();
-    const user = await auth.getUserByEmail(norm).catch((e: any) => {
-      const code = e?.code || e?.errorInfo?.code;
-      if (code === "auth/user-not-found") return null;
-      return Promise.reject(e);
-    });
-    if (!user) return NextResponse.json({ error: "user-not-found" }, { status: 404 });
-    if (!user.emailVerified) return NextResponse.json({ error: "not-verified" }, { status: 409 });
+    const user = uid ? await auth.getUser(uid) : await auth.getUserByEmail(String(email).trim().toLowerCase());
+    if (!user.email || !user.emailVerified) return bad('not-verified', 409);
 
     const claims = (user.customClaims as Record<string, unknown>) || {};
-    if (claims.welcomeSent === true) return NextResponse.json({ ok: true, alreadySent: true });
+    if (claims.welcomeSent === true) return NextResponse.json<ApiOk>({ ok: true, sent: false });
 
-    const appUrl = process.env.PORTAL_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://portal.theclearpath.ae";
-    const apiKey = process.env.BREVO_API_KEY || "";
-    const templateId =
-      Number(process.env.BREVO_WELCOME_TEMPLATE_ID ?? process.env.BREVO_TEMPLATE_ID_WELCOME ?? NaN);
-    if (!apiKey || !Number.isFinite(templateId)) {
-      return NextResponse.json({ error: "brevo-env-missing" }, { status: 500 });
-    }
-
-    const portal = `${appUrl}/portal`;
-    const logoUrl = process.env.MAIL_LOGO_URL || `${appUrl}/logo.png`;
-    const onboarding = process.env.WELCOME_PDF_URL; // optional
+    const apiKey = process.env.BREVO_API_KEY || '';
+    const templateId = Number(process.env.BREVO_WELCOME_TEMPLATE_ID || '1');
+    if (!apiKey || !templateId) return bad('email-config-missing', 500);
 
     await axios.post(
-      "https://api.brevo.com/v3/smtp/email",
+      'https://api.brevo.com/v3/smtp/email',
       {
-        to: [{ email: norm, name: user.displayName || norm.split("@")[0] }],
+        to: [{ email: user.email!, name: user.displayName || user.email }],
         templateId,
         params: {
-          displayName: user.displayName || norm.split("@")[0],
-          portal_url: portal,
-          logoUrl,
-          brand_color: "#1F4142",
-          onboarding_url: onboarding,
+          portal_url: 'https://portal.theclearpath.ae/portal',
+          logoUrl: 'https://portal.theclearpath.ae/logo.png',
+          displayName: user.displayName || user.email.split('@')[0],
         },
-        headers: { "X-Mail-Tag": "welcome-email" },
+        headers: { 'X-Mailin-Tag': 'welcome' },
       },
-      { headers: { "api-key": apiKey, "content-type": "application/json" }, timeout: 15000 }
+      { headers: { 'api-key': apiKey, 'content-type': 'application/json' }, timeout: 15000 },
     );
 
     await auth.setCustomUserClaims(user.uid, { ...claims, welcomeSent: true });
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json<ApiOk>({ ok: true, sent: true });
   } catch (e: any) {
-    return NextResponse.json({ error: "internal", detail: String(e?.response?.data || e?.message || e) }, { status: 500 });
+    return bad(e?.message || 'unknown', 500);
   }
-}
-
-export function GET() {
-  return NextResponse.json({ error: "method-not-allowed" }, { status: 405 });
 }

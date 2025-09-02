@@ -1,50 +1,43 @@
+// next.config.ts
 import type { NextConfig } from "next";
 
-const csp = [
+const defaultCsp = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
+  "img-src 'self' data: blob: https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "font-src 'self' data: https:",
+  "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.brevo.com https://www.googletagmanager.com https://www.google-analytics.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://firestore.googleapis.com",
+  "frame-ancestors 'self'",
+  "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.gstatic.com",
+  "script-src 'self' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com",
+].join("; ");
+
+const authCsp = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "img-src 'self' data: blob: https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "font-src 'self' data: https:",
+  "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api.brevo.com https://www.googletagmanager.com https://www.google-analytics.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://firestore.googleapis.com",
   "frame-ancestors 'self'",
   "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.gstatic.com",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com",
-  "connect-src 'self' https://*.googleapis.com https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://www.gstatic.com https://*.firebaseapp.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://*.gstatic.com https://*.googleusercontent.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "worker-src 'self' blob:",
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  eslint: { ignoreDuringBuilds: true },
-  async headers() {
-    return [
-      {
-        source: "/signup", headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ]
-      },
-      {
-        source: "/login", headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ]
-      },
-      {
-        source: "/verify-email", headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ]
-      },
-    ];
-  },
+  typedRoutes: true,
+  headers: async () => [
+    { source: "/verify-email", headers: [{ key: "Content-Security-Policy", value: authCsp }] },
+    { source: "/verify-email/:path*", headers: [{ key: "Content-Security-Policy", value: authCsp }] },
+    { source: "/login", headers: [{ key: "Content-Security-Policy", value: authCsp }] },
+    { source: "/signup", headers: [{ key: "Content-Security-Policy", value: authCsp }] },
+    { source: "/auth/callback", headers: [{ key: "Content-Security-Policy", value: authCsp }] },
+    { source: "/api/:path*", headers: [{ key: "Content-Security-Policy", value: defaultCsp }] },
+    { source: "/:path*", headers: [{ key: "Content-Security-Policy", value: defaultCsp }] },
+  ],
 };
 
 export default nextConfig;

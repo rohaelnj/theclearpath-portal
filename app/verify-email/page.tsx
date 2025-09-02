@@ -1,75 +1,147 @@
+// app/verify-email/page.tsx
 'use client';
-import { useEffect, useState } from 'react';
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getAuth, applyActionCode, reload, onAuthStateChanged, type User } from 'firebase/auth';
-import { useRouter, useSearchParams } from 'next/navigation';
 
-const cfg = {
+import React from 'react';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { applyActionCode, checkActionCode, getAuth } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
+
+const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-function auth() {
-  const app = getApps().length ? getApp() : initializeApp(cfg);
+function getClientAuth() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   return getAuth(app);
 }
 
-export default function VerifyEmailPage() {
-  const [msg, setMsg] = useState('Verifying your email…');
+// Extract ?oobCode=… directly or nested in continueUrl
+function extractOobCode(): string {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const direct = sp.get('oobCode');
+    if (direct) return direct;
+    const cont = sp.get('continueUrl');
+    if (cont) {
+      try {
+        const inner = new URL(cont);
+        const nested = inner.searchParams.get('oobCode');
+        if (nested) return nested;
+      } catch { }
+    }
+  } catch { }
+  return '';
+}
+
+export default function VerifyEmailPage(): React.ReactElement {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const auth = React.useMemo(() => getClientAuth(), []);
+  const [code, setCode] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [status, setStatus] = React.useState<'idle' | 'checking' | 'ready' | 'verifying' | 'done' | 'error'>('idle');
+  const [error, setError] = React.useState('');
 
-  useEffect(() => {
-    const code = searchParams.get('oobCode');
-    const continueUrl = searchParams.get('continueUrl') || '/portal';
-    
-    if (!code) { setMsg('Missing verification code.'); return; }
+  React.useEffect(() => {
+    const c = extractOobCode();
+    if (!c) {
+      setStatus('idle');
+      return;
+    }
+    setCode(c);
+    void handleCheck(c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const a = auth();
-    applyActionCode(a, code)
-      .then(async () => {
-        setMsg('Email verified! Sending welcome email...');
-        
-        // Wait for auth state to update
-        const unsubscribe = onAuthStateChanged(a, async (user) => {
-          if (user) {
-            await reload(user);
-            
-            // Send welcome email
-            try {
-              await fetch('/api/send-welcome', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: user.uid }),
-              });
-            } catch (err) {
-              console.error('Failed to send welcome email:', err);
-            }
-            
-            setMsg('Welcome! Taking you to your dashboard...');
-            setTimeout(() => router.replace(continueUrl), 1500);
-            unsubscribe();
-          } else {
-            setMsg('Verified. Please sign in.');
-            setTimeout(() => router.replace('/login?verified=1'), 1500);
-            unsubscribe();
-          }
-        });
-      })
-      .catch((e) => {
-        const t = e instanceof Error ? e.message : String(e);
-        setMsg(`Verification failed: ${t}`);
-      });
-  }, [searchParams, router]);
+  async function handleCheck(c: string) {
+    setError('');
+    setStatus('checking');
+    try {
+      const info = await checkActionCode(auth, c);
+      const em = (info.data?.email as string | undefined) ?? '';
+      setEmail(em);
+      setStatus('ready');
+    } catch {
+      setError('Invalid or expired verification link.');
+      setStatus('error');
+    }
+  }
+
+  async function handleVerify() {
+    if (!code) return;
+    setError('');
+    setStatus('verifying');
+    try {
+      await applyActionCode(auth, code);
+
+      // Fire-and-forget welcome; server enforces verified + idempotent
+      if (email) {
+        fetch('/api/send-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }).catch(() => void 0);
+      }
+
+      setStatus('done');
+      const target: Route = '/portal';
+      setTimeout(() => router.replace(target), 800);
+    } catch {
+      setError('Verification failed. The code may have been used already.');
+      setStatus('error');
+    }
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="text-center text-base">{msg}</div>
+      <div className="w-full max-w-md">
+        <h1 className="mb-2 text-2xl font-semibold text-gray-900">Verify your email</h1>
+
+        <p className="mb-4 text-sm text-gray-600">
+          {status === 'idle' && 'Missing verification code.'}
+          {status === 'checking' && 'Checking code…'}
+          {status === 'ready' && `Code looks valid for ${email || 'your account'}.`}
+          {status === 'verifying' && 'Verifying…'}
+          {status === 'done' && 'Verified. Redirecting to your portal…'}
+          {status === 'error' && error}
+        </p>
+
+        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">
+          Verification code
+        </label>
+        <input
+          id="code"
+          value={code}
+          onChange={(e) => setCode(e.target.value.trim())}
+          className="mb-3 w-full rounded-xl border border-gray-300 px-3 py-2"
+          placeholder="Paste oobCode here"
+        />
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleCheck(code)}
+            className="rounded-2xl bg-gray-200 px-4 py-2 text-gray-900"
+            disabled={!code || status === 'checking' || status === 'verifying'}
+          >
+            Check
+          </button>
+          <button
+            type="button"
+            onClick={handleVerify}
+            className="rounded-2xl bg-[#1F4142] px-4 py-2 text-white disabled:opacity-50"
+            disabled={status !== 'ready'}
+          >
+            Verify now
+          </button>
+        </div>
+
+        <p className="mt-6 text-sm text-gray-600">
+          Didn’t get the email? <a className="underline" href="/verify-email/sent">Resend verification</a>
+        </p>
+      </div>
     </main>
   );
 }
