@@ -1,1 +1,2 @@
-export { app, auth } from "../firebaseClient";
+// Export getters only. No top-level initialization.
+export { getFirebaseClient, getAuthClient } from '../firebaseClient';
