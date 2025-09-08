@@ -6,6 +6,20 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // unblock production build now
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://*.googleapis.com https://*.gstatic.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseapp.com; frame-ancestors 'self'; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.gstatic.com; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com; worker-src 'self' blob:",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
