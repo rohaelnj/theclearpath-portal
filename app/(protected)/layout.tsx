@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState, type ReactNode } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/firebaseClient";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, type ReactNode } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter, usePathname } from 'next/navigation';
+import { getAuthClient } from '@/lib/firebase';
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
@@ -11,29 +11,24 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                router.replace(`/login?next=${encodeURIComponent(pathname || "/portal")}`);
-                return;
+        const auth = getAuthClient();
+        const unsub = onAuthStateChanged(auth, (u) => {
+            const ok = !!u && (u.emailVerified || u.providerData.some(p => p.providerId === 'google.com'));
+            if (!ok) {
+                if (pathname !== '/login') router.replace('/login');
+            } else {
+                setReady(true);
             }
-            const needsVerify =
-                user.providerData.some((p) => p.providerId === "password") && !user.emailVerified;
-            if (needsVerify) {
-                router.replace(`/login?verify=1&next=${encodeURIComponent(pathname || "/portal")}`);
-                return;
-            }
-            setReady(true);
         });
         return () => unsub();
     }, [router, pathname]);
 
     if (!ready) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full border-4 border-[#1F4142] border-t-transparent animate-spin" />
+            <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui' }}>
+                <span>Loading…</span>
             </div>
         );
     }
-
     return <>{children}</>;
 }
