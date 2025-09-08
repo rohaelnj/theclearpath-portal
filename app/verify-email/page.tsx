@@ -3,21 +3,12 @@
 export const dynamic = 'force-dynamic';
 
 import React from 'react';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { applyActionCode, checkActionCode, getAuth } from 'firebase/auth';
+import { applyActionCode, checkActionCode, type Auth } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
+import { getAuthClient } from '@/lib/firebase';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-};
-
-function getClientAuth() {
-  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-  return getAuth(app);
-}
+// Initialize client auth only in effects to avoid server rendering issues
 
 function extractOobCode(): string {
   try {
@@ -38,13 +29,14 @@ function extractOobCode(): string {
 
 export default function VerifyEmailPage(): React.ReactElement {
   const router = useRouter();
-  const auth = React.useMemo(() => getClientAuth(), []);
+  const [auth, setAuth] = React.useState<Auth | null>(null);
   const [code, setCode] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [status, setStatus] = React.useState<'idle' | 'checking' | 'ready' | 'verifying' | 'done' | 'error'>('idle');
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
+    setAuth(getAuthClient());
     const c = extractOobCode();
     if (!c) {
       setStatus('idle');
@@ -59,7 +51,8 @@ export default function VerifyEmailPage(): React.ReactElement {
     setError('');
     setStatus('checking');
     try {
-      const info = await checkActionCode(auth, c);
+      const a = auth ?? getAuthClient();
+      const info = await checkActionCode(a, c);
       const em = (info.data?.email as string | undefined) ?? '';
       setEmail(em);
       setStatus('ready');
@@ -74,7 +67,8 @@ export default function VerifyEmailPage(): React.ReactElement {
     setError('');
     setStatus('verifying');
     try {
-      await applyActionCode(auth, code);
+      const a = auth ?? getAuthClient();
+      await applyActionCode(a, code);
 
       if (email) {
         fetch('/api/send-welcome', {
