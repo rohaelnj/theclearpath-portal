@@ -1,11 +1,9 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, type ChangeEvent } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
-import { getAuthClient } from '@/lib/firebase';
+import React, { useEffect, useState, type ChangeEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -17,9 +15,8 @@ import {
   setPersistence,
   browserLocalPersistence,
   type UserCredential,
-} from 'firebase/auth';
-
-// Avoid calling getAuthClient() at module scope to keep SSR safe
+} from "firebase/auth";
+import { getAuthClient } from "@/lib/firebase";
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -28,34 +25,37 @@ function errMsg(e: unknown): string {
 
 export default function Signup(): React.ReactElement {
   const router = useRouter();
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [name, setName] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    // Ensure session persists across Google redirect
     const auth = getAuthClient();
-    setPersistence(auth, browserLocalPersistence).catch(() => { });
+    setPersistence(auth, browserLocalPersistence).catch(() => {});
 
+    // Only send verified or Google to dashboard
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return;
       const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
       if (isVerified) router.replace('/portal');
     });
 
+    // Complete Google redirect flow
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
-      .catch(() => { });
+      .catch(() => {});
 
     return () => unsub();
   }, [router]);
 
   const handleGoogle = async (): Promise<void> => {
     try {
-      setError('');
+      setError("");
       setGLoading(true);
 
       const auth = getAuthClient();
@@ -88,14 +88,15 @@ export default function Signup(): React.ReactElement {
       return;
     }
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     try {
       const auth = getAuthClient();
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
+      // Send verification email via API
       await fetch('/api/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,10 +152,10 @@ export default function Signup(): React.ReactElement {
         style={{
           backgroundColor: '#DED4C8',
           padding: '2.25rem',
-          borderRadius: 16,
+          borderRadius: '16px',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
           width: '100%',
-          maxWidth: 420,
+          maxWidth: '420px',
         }}
       >
         {success && <p style={{ color: '#1F4142', marginBottom: '1rem', fontWeight: 'bold' }}>{success}</p>}
@@ -223,7 +224,7 @@ export default function Signup(): React.ReactElement {
           disabled={gLoading}
           style={{
             width: '100%',
-            marginTop: 12,
+            marginTop: '12px',
             padding: '0.85rem',
             backgroundColor: gLoading ? '#999' : '#FFFFFF',
             color: '#1F4142',
@@ -247,3 +248,4 @@ export default function Signup(): React.ReactElement {
     </main>
   );
 }
+
