@@ -1,17 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAuthClient } from '@/lib/firebase';
 
-type ApiHealth = { ok: boolean; msg?: string; error?: string };
-
-const auth = getAuthClient();
+type ApiHealth = { ok: boolean; error?: string };
 
 export default function HealthPage() {
   const [api, setApi] = useState<ApiHealth | null>(null);
 
   useEffect(() => {
-    fetch('/api/health', { cache: 'no-store' })
+    fetch('/api/admin-health', { cache: 'no-store' })
       .then((r) => r.json())
       .then((data: ApiHealth) => setApi(data))
       .catch(() => setApi({ ok: false, error: 'request_failed' }));
@@ -20,11 +17,13 @@ export default function HealthPage() {
   const clientOk =
     !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    !!auth;
+    !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID &&
+    !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
 
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
       <h1 style={{ fontSize: 22, marginBottom: 12 }}>Health Check</h1>
+
       <ul style={{ lineHeight: 1.8 }}>
         <li>Client env present (public) — <strong>{clientOk ? 'OK ✅' : 'Missing ❌'}</strong></li>
         <li>
@@ -34,9 +33,9 @@ export default function HealthPage() {
           </strong>
         </li>
       </ul>
+
       <p style={{ marginTop: 16, color: '#666' }}>
-        This page only checks <code>NEXT_PUBLIC_*</code> vars on the client and that the Admin SDK can
-        initialize on the server. No secrets are shown.
+        This checks only <code>NEXT_PUBLIC_*</code> vars on the client and that the Admin SDK initializes on the server.
       </p>
     </div>
   );

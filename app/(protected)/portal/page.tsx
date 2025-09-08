@@ -64,6 +64,7 @@ export default function PortalPage() {
 
   return (
     <div style={{ background: color.background, minHeight: '100vh', fontFamily }}>
+      {/* header */}
       <header
         style={{
           display: 'flex',
@@ -163,6 +164,7 @@ export default function PortalPage() {
         </button>
       </header>
 
+      {/* body */}
       <main style={{ maxWidth: 1000, margin: '0 auto', padding: '3rem 1rem 2rem' }}>
         <section
           style={{

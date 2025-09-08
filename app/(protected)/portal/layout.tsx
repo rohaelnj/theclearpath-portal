@@ -17,8 +17,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
         router.replace(`/login?next=${encodeURIComponent(pathname || '/portal')}`);
         return;
       }
-      const needsVerify =
-        user.providerData.some((p) => p.providerId === 'password') && !user.emailVerified;
+      const needsVerify = user.providerData.some((p) => p.providerId === 'password') && !user.emailVerified;
       if (needsVerify) {
         router.replace(`/login?verify=1&next=${encodeURIComponent(pathname || '/portal')}`);
         return;
