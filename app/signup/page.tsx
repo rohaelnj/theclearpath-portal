@@ -5,11 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { auth } from '@/firebaseClient';
+import { getAuthClient } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
-  sendEmailVerification,
   getRedirectResult,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -19,6 +18,8 @@ import {
   browserLocalPersistence,
   type UserCredential,
 } from 'firebase/auth';
+
+const auth = getAuthClient();
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -36,17 +37,14 @@ export default function Signup(): React.ReactElement {
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Ensure session persists across Google redirect
     setPersistence(auth, browserLocalPersistence).catch(() => { });
 
-    // Only send verified or Google to dashboard
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return;
       const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
       if (isVerified) router.replace('/portal');
     });
 
-    // Complete Google redirect flow
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
       .catch(() => { });
@@ -95,18 +93,16 @@ export default function Signup(): React.ReactElement {
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
 
-      // Send verification email via API
       await fetch('/api/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: user.email || '', 
+        body: JSON.stringify({
+          email: user.email || '',
           displayName: trimmedName || user.email?.split('@')[0] || ''
         }),
       });
 
       setSuccess('Account created! Check your email to verify.');
-      // Stay signed in; verify page will push to /portal after applyActionCode
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
       const msg = errMsg(e);
@@ -152,10 +148,10 @@ export default function Signup(): React.ReactElement {
         style={{
           backgroundColor: '#DED4C8',
           padding: '2.25rem',
-          borderRadius: '16px',
+          borderRadius: 16,
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: 420,
         }}
       >
         {success && <p style={{ color: '#1F4142', marginBottom: '1rem', fontWeight: 'bold' }}>{success}</p>}
@@ -224,7 +220,7 @@ export default function Signup(): React.ReactElement {
           disabled={gLoading}
           style={{
             width: '100%',
-            marginTop: '12px',
+            marginTop: 12,
             padding: '0.85rem',
             backgroundColor: gLoading ? '#999' : '#FFFFFF',
             color: '#1F4142',
