@@ -1,4 +1,7 @@
 // app/api/send-verification/route.ts
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { getAdminAuth } from '@/lib/firebaseAdmin';
