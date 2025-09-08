@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, type ChangeEvent } from "react";
 import Image from "next/image";
@@ -248,4 +249,3 @@ export default function Signup(): React.ReactElement {
     </main>
   );
 }
-
