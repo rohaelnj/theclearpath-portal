@@ -13,7 +13,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     useEffect(() => {
         const auth = getAuthClient();
         const unsub = onAuthStateChanged(auth, (u) => {
-            const ok = !!u && (u.emailVerified || u.providerData.some(p => p.providerId === 'google.com'));
+            const ok = !!u && (u.emailVerified || u.providerData.some((p) => p.providerId === 'google.com'));
             if (!ok) {
                 if (pathname !== '/login') router.replace('/login');
             } else {

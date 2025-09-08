@@ -1,4 +1,3 @@
-// app/login/page.tsx
 'use client';
 
 import React from 'react';
@@ -13,7 +12,7 @@ import {
   getAdditionalUserInfo,
   signOut,
 } from 'firebase/auth';
-import { auth } from '@/firebaseClient';
+import { getAuthClient } from '@/lib/firebase';
 
 function GoogleButton({ onError }: { onError: (m: string) => void }) {
   const [loading, setLoading] = React.useState(false);
@@ -23,6 +22,7 @@ function GoogleButton({ onError }: { onError: (m: string) => void }) {
     if (loading) return;
     setLoading(true);
     try {
+      const auth = getAuthClient();
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const cred = await signInWithPopup(auth, provider);
@@ -30,7 +30,6 @@ function GoogleButton({ onError }: { onError: (m: string) => void }) {
       const info = getAdditionalUserInfo(cred);
       const email = cred.user.email ?? '';
 
-      // If brand-new from Google while on /login → force Sign Up first
       if (info?.isNewUser) {
         try { await cred.user.delete(); } catch { }
         await signOut(auth);
@@ -39,7 +38,6 @@ function GoogleButton({ onError }: { onError: (m: string) => void }) {
         return;
       }
 
-      // Existing user → go to portal
       router.replace('/portal');
     } catch (e) {
       console.error(e);
@@ -86,6 +84,7 @@ export default function LoginPage(): React.ReactElement {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
+    const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u) router.replace('/portal');
     });
@@ -108,6 +107,7 @@ export default function LoginPage(): React.ReactElement {
     setError('');
     setLoading(true);
     try {
+      const auth = getAuthClient();
       const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
 
       if (!user.emailVerified) {
