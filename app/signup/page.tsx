@@ -19,7 +19,7 @@ import {
   type UserCredential,
 } from 'firebase/auth';
 
-const auth = getAuthClient();
+// Avoid calling getAuthClient() at module scope to keep SSR safe
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -37,6 +37,7 @@ export default function Signup(): React.ReactElement {
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
+    const auth = getAuthClient();
     setPersistence(auth, browserLocalPersistence).catch(() => { });
 
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -57,6 +58,7 @@ export default function Signup(): React.ReactElement {
       setError('');
       setGLoading(true);
 
+      const auth = getAuthClient();
       await setPersistence(auth, browserLocalPersistence);
 
       const provider = new GoogleAuthProvider();
@@ -89,6 +91,7 @@ export default function Signup(): React.ReactElement {
     setError('');
     setSuccess('');
     try {
+      const auth = getAuthClient();
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
