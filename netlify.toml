@@ -1,0 +1,23 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[plugins]
+  package = "@netlify/plugin-nextjs"
+
+# Permissive CSP to unblock hydration and Firebase/Auth now.
+[[headers]]
+  for = "/*"
+  [headers.values]
+  Content-Security-Policy = "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; base-uri 'self'; object-src 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; connect-src 'self' https: wss: https://www.google-analytics.com https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; script-src 'self' https: 'unsafe-inline' 'unsafe-eval'; style-src 'self' https: 'unsafe-inline'; frame-ancestors 'self'; frame-src 'self' https: data:;"
+  Referrer-Policy = "strict-origin-when-cross-origin"
+  X-Content-Type-Options = "nosniff"
+  X-Frame-Options = "SAMEORIGIN"
+
+# Force HTTPS on custom domain.
+[[redirects]]
+  from = "http://portal.theclearpath.ae/*"
+  to = "https://portal.theclearpath.ae/:splat"
+  status = 301
+  force = true
+

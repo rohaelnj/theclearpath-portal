@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Netlify: Login", "type": "shell", "command": "netlify login" },
+    { "label": "Netlify: Link", "type": "shell", "command": "netlify link" },
+    { "label": "Netlify: Env import (.env.production)", "type": "shell", "command": "netlify env:import .env.production" },
+    { "label": "Netlify: Deploy (prod build)", "type": "shell", "command": "netlify deploy --build --prod" },
+    { "label": "Netlify: Open dashboard", "type": "shell", "command": "netlify open:site" }
+  ]
+}
+
