@@ -62,3 +62,6 @@ key.b64
 # ignore env backups
 .env.local.backup*
 .env.backup*
+
+# Local Netlify folder
+.netlify
