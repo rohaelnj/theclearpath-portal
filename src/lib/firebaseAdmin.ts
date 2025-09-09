@@ -18,7 +18,8 @@ function getFirebaseAdminApp(): App {
   const apps = getApps();
   if (apps.length) return getApp();
 
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+  // Support both FIREBASE_ADMIN_PROJECT_ID and FIREBASE_PROJECT_ID
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = readPrivateKey();
 
