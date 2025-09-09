@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
           {
             key: 'Content-Security-Policy',
             value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://*.googleapis.com https://*.gstatic.com https://firestore.googleapis.com https://firebasestorage.googleapis.com https://*.firebaseapp.com; frame-ancestors 'self'; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://*.google.com https://*.gstatic.com; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com https://www.google-analytics.com; worker-src 'self' blob:",
+              "default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; connect-src 'self' https: wss: https://www.google-analytics.com https://*.googleapis.com https://*.googleusercontent.com https://*.firebaseio.com https://firestore.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://www.googletagmanager.com; script-src 'self' https: 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.gstatic.com; style-src 'self' https: 'unsafe-inline'; frame-ancestors 'self'; frame-src 'self' https: https://accounts.google.com https://*.google.com https://*.firebaseapp.com;",
           },
         ],
       },
