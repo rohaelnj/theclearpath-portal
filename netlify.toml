@@ -2,19 +2,16 @@
 command = "npm run build"
 publish = ".next"
 
-# Build-only, not injected into Functions runtime
+# Build-only envs (NOT injected into Functions runtime)
 [build.environment]
-# GA4
 GA4_MEASUREMENT_ID = "G-RNFQXLZ6DD"
+PORTAL_BASE_URL    = "https://portal.theclearpath.ae"
+NODE_VERSION       = "20"
 
-# App URLs
-PORTAL_BASE_URL = "https://portal.theclearpath.ae"
-NODE_VERSION = "20"
-
-# If your build needs Firebase public vars, add them here exactly as used in your app:
+# If needed later, you can also move Firebase PUBLIC keys here:
 # NEXT_PUBLIC_FIREBASE_API_KEY = "paste-real"
 # NEXT_PUBLIC_FIREBASE_APP_ID = "paste-real"
-# NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "theclearpath-6864e.firebaseapp.com"
+# NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "paste-real"
 # NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "paste-real"
 # NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "paste-real"
 # NEXT_PUBLIC_FIREBASE_PROJECT_ID = "theclearpath-6864e"
