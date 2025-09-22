@@ -1,32 +1,21 @@
 [build]
-  command = "npm run build"
-  publish = ".next"
+command = "npm run build"
+publish = ".next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Build-only, not injected into Functions runtime
+[build.environment]
+# GA4
+GA4_MEASUREMENT_ID = "G-RNFQXLZ6DD"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-  Content-Security-Policy = "default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; connect-src 'self' https: wss: https://www.google-analytics.com https://*.googleapis.com https://*.googleusercontent.com https://*.firebaseio.com https://firestore.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://www.googletagmanager.com; script-src 'self' https: 'unsafe-inline' https://www.googletagmanager.com https://www.gstatic.com https://accounts.google.com https://apis.google.com; style-src 'self' https: 'unsafe-inline'; frame-ancestors 'self'; frame-src 'self' https: https://accounts.google.com https://*.google.com https://*.firebaseapp.com;"
-  Referrer-Policy = "strict-origin-when-cross-origin"
-  X-Content-Type-Options = "nosniff"
-  X-Frame-Options = "SAMEORIGIN"
-  Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-  Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+# App URLs
+PORTAL_BASE_URL = "https://portal.theclearpath.ae"
+NODE_VERSION = "20"
 
-[[headers]]
-  for = "/_next/static/*"
-  [headers.values]
-  Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-  Cache-Control = "no-store"
-
-[[redirects]]
-  from = "http://portal.theclearpath.ae/*"
-  to = "https://portal.theclearpath.ae/:splat"
-  status = 301
-  force = true
+# If your build needs Firebase public vars, add them here exactly as used in your app:
+# NEXT_PUBLIC_FIREBASE_API_KEY = "paste-real"
+# NEXT_PUBLIC_FIREBASE_APP_ID = "paste-real"
+# NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "theclearpath-6864e.firebaseapp.com"
+# NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "paste-real"
+# NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "paste-real"
+# NEXT_PUBLIC_FIREBASE_PROJECT_ID = "theclearpath-6864e"
+# NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "theclearpath-6864e.appspot.com"
