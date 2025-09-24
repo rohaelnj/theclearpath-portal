@@ -6,7 +6,7 @@ import type {
   CheckoutSessionRequest,
   CheckoutSessionResponse,
   StripeEnv,
-} from '@/lib/stripeTypes';
+} from '../../../../src/lib/stripeTypes';
 
 interface BookingDocument {
   clientEmail?: string;
