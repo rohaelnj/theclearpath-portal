@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
+  const { pathname } = new URL(req.url);
+
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/.netlify') ||
+    pathname.startsWith('/_next') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
+  }
+
   const res = NextResponse.next();
   // Hotfix: remove CSP headers set anywhere upstream
   res.headers.delete('content-security-policy');
