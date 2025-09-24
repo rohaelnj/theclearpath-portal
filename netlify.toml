@@ -19,6 +19,12 @@ NODE_VERSION       = "20"
 
 # Force Next.js Pages API routes to the bundled Next function
 [[redirects]]
+from = "/api/bookings/create-session"
+to   = "/.netlify/functions/___netlify-server-handler?route=/api/bookings/create-session"
+status = 200
+force = true
+
+[[redirects]]
 from = "/api/*"
 to   = "/.netlify/functions/___netlify-server-handler?route=/api/:splat"
 status = 200
