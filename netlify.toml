@@ -16,3 +16,10 @@ NODE_VERSION       = "20"
 # NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "paste-real"
 # NEXT_PUBLIC_FIREBASE_PROJECT_ID = "theclearpath-6864e"
 # NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "theclearpath-6864e.appspot.com"
+
+# Force Next.js Pages API routes to the bundled Next function
+[[redirects]]
+from = "/api/*"
+to   = "/.netlify/functions/___netlify-server-handler?route=/api/:splat"
+status = 200
+force = true
