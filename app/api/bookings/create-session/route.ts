@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { initFirebaseAdmin } from '../../../src/firebaseAdmin';
+import { initFirebaseAdmin } from '../../../../src/firebaseAdmin';
 import type {
   BookingMetadata,
   CheckoutSessionRequest,
