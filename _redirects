@@ -1,2 +1,0 @@
-/api/bookings/create-session  /.netlify/functions/___netlify-server-handler?route=/api/bookings/create-session  200!
-/api/*                        /.netlify/functions/___netlify-server-handler?route=/api/:splat                   200!
