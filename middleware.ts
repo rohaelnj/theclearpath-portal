@@ -1,28 +1,25 @@
-// middleware.ts
 import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
 
-// Pass-through middleware that explicitly skips API, Next internals, Netlify internals, and common static files.
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;
-
-  // Always skip for these prefixes/files
   if (
     p.startsWith('/api') ||
     p.startsWith('/_next') ||
     p.startsWith('/.netlify') ||
-    p === '/favicon.ico' ||
-    p === '/robots.txt' ||
-    p === '/sitemap.xml'
+    p.endsWith('.ico') ||
+    p.endsWith('.png') ||
+    p.endsWith('.jpg') ||
+    p.endsWith('.svg') ||
+    p.endsWith('.txt') ||
+    p.endsWith('.xml')
   ) {
-    return NextResponse.next();
+    return; // pass-through
   }
 
-  // If you need auth/redirect logic for pages, add it **below** this line.
-  return NextResponse.next();
+  // Existing middleware logic (none currently)
+  return;
 }
 
-// Only run on routes without a dot (avoids static assets) and lets the skip-list above short-circuit first.
 export const config = {
   matcher: ['/((?!.*\\.).*)'],
 };

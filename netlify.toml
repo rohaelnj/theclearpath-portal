@@ -2,8 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
+# Send ALL /api/* traffic to the Next server handler using PATH style.
 [[redirects]]
   from = "/api/*"
-  to   = "/.netlify/functions/___netlify-server-handler?route=/api/:splat"
+  to   = "/.netlify/functions/___netlify-server-handler/api/:splat"
   status = 200
   force = true
