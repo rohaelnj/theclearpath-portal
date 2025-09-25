@@ -8,11 +8,12 @@ export default async function BookingPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams?: Search;
+  searchParams: Promise<Search>;
 }) {
   const { slug } = await params;
+  const search = await searchParams;
 
-  const cancelled = typeof searchParams?.payment === 'string' && searchParams.payment === 'cancelled';
+  const cancelled = typeof search.payment === 'string' && search.payment === 'cancelled';
 
   return (
     <main className="mx-auto max-w-xl p-8">
