@@ -2,29 +2,7 @@
   command = "npm run build"
   publish = ".next"
 
-[build.environment]
-  GA4_MEASUREMENT_ID = "G-RNFQXLZ6DD"
-  PORTAL_BASE_URL    = "https://portal.theclearpath.ae"
-  NODE_VERSION       = "20"
-
-# ---------------------------
-# IMPORTANT: API redirects MUST come first
-# ---------------------------
-[[redirects]]
-  from = "/api/bookings/create-session"
-  to   = "/.netlify/functions/___netlify-server-handler?route=/api/bookings/create-session"
-  status = 200
-  force = true
-
 [[redirects]]
   from = "/api/*"
-  to   = "/.netlify/functions/___netlify-server-handler?route=/api/:splat"
+  to   = "/.netlify/functions/___netlify-server-handler"
   status = 200
-  force = true
-
-# Optional: keep any SPA fallback only AFTER API redirects.
-# Uncomment only if you actually need an index.html fallback and place it last.
-# [[redirects]]
-#   from = "/*"
-#   to   = "/index.html"
-#   status = 200
