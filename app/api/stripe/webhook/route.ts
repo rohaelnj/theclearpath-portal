@@ -28,13 +28,18 @@ export async function POST(req: Request) {
       const currency = (session.currency ?? '').toUpperCase();
       const bookingId = (session.metadata?.bookingId ?? '') as string;
 
-      let email: string | undefined = session.customer_details?.email;
+      const customerDetails = session.customer_details;
+      let email: string | undefined =
+        typeof customerDetails?.email === 'string' ? customerDetails.email : undefined;
 
       if (!email && typeof session.customer === 'string') {
         const resp = await stripe.customers.retrieve(session.customer);
-        const customer = (resp as Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer>).data;
-        if (!('deleted' in customer && customer.deleted)) {
-          email = (customer as Stripe.Customer).email ?? undefined;
+        if ('deleted' in resp) {
+          if (!resp.deleted && typeof resp.email === 'string') {
+            email = resp.email;
+          }
+        } else if (typeof resp.email === 'string') {
+          email = resp.email;
         }
       }
 
