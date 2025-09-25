@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     return new Response('Missing Stripe config', { status: 400 });
   }
 
-  const stripe = new Stripe(sk, { apiVersion: '2024-06-20' });
+  const stripe = new Stripe(sk);
 
   // IMPORTANT: use raw body for signature verification
   const raw = await req.text();
