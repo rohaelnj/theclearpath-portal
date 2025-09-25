@@ -189,6 +189,8 @@ export async function POST(req: NextRequest) {
           },
         },
       ],
+      customer_creation: 'always',
+      invoice_creation: { enabled: true },
       metadata,
       client_reference_id: payload.bookingId,
       customer_email: typeof booking.clientEmail === 'string' ? booking.clientEmail : undefined,
