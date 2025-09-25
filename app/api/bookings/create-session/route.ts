@@ -162,6 +162,8 @@ export async function POST(req: NextRequest) {
     }
 
     const currency = coerceCurrency(payload.currency);
+    // Stripe expects amounts in minor units; enforce business minimum of 300 fils (AED 3.00).
+    const amountFils = Math.max(300, payload.amountAED);
     const baseUrl = resolveBaseUrl(req, env);
 
     const metadata = toStripeMetadata(buildMetadata(payload.bookingId, booking));
@@ -179,7 +181,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
           price_data: {
             currency,
-            unit_amount: payload.amountAED,
+            unit_amount: amountFils,
             product_data: {
               name: productName,
               description: productDescription,
