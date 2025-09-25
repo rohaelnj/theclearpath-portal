@@ -1,7 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-import Image from 'next/image';
 import Stripe from 'stripe';
 
 type Search = Record<string, string | string[] | undefined>;
@@ -16,12 +15,20 @@ export default async function SuccessPage({ searchParams }: Props) {
   const sessionId = (sp.session_id as string) ?? 'unknown';
 
   let status = 'unknown';
-  if (sessionId !== 'unknown' && process.env.STRIPE_SECRET_KEY) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-08-27.basil',
-    });
-    const session = await stripe.checkout.sessions.retrieve(sessionId).catch(() => null);
-    status = session?.payment_status ?? 'unknown';
+  if (
+    sessionId !== 'unknown' &&
+    sessionId.startsWith('cs_') &&
+    process.env.STRIPE_SECRET_KEY
+  ) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-08-27.basil',
+      });
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      status = session.payment_status ?? 'unknown';
+    } catch {
+      status = 'unknown';
+    }
   }
 
   return (
@@ -29,24 +36,13 @@ export default async function SuccessPage({ searchParams }: Props) {
       <div className="w-full max-w-xl rounded-2xl bg-white shadow-lg ring-1 ring-black/5 p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="h-10 w-10 overflow-hidden rounded-full ring-1 ring-[#1f3a37]/10 bg-[#e8e0d5] flex items-center justify-center">
-            <Image
-              src="/logo.png"
-              alt="The Clear Path"
-              width={40}
-              height={40}
-              className="object-contain"
-              onError={(event) => {
-                const target = event.target as HTMLElement;
-                target.style.display = 'none';
-              }}
-            />
+            <img src="/logo.png" alt="The Clear Path" width={40} height={40} />
           </div>
           <h1 className="text-xl font-semibold">Payment status</h1>
         </div>
 
         <p className="text-sm text-[#1f3a37]/70">
-          Thank you for choosing <span className="font-medium">The Clear Path</span>. Your payment has been
-          processed.
+          Thank you for choosing <span className="font-medium">The Clear Path</span>.
         </p>
 
         <div className="mt-6 grid gap-3 text-sm">
@@ -60,13 +56,11 @@ export default async function SuccessPage({ searchParams }: Props) {
           </div>
           <div className="flex justify-between">
             <span className="text-[#1f3a37]/60">Status</span>
-            <span className="font-semibold capitalize">{status === 'paid' ? 'Paid' : status}</span>
+            <span className="font-semibold capitalize">
+              {status === 'paid' ? 'Paid' : status}
+            </span>
           </div>
         </div>
-
-        <p className="mt-4 text-xs text-[#1f3a37]/60">
-          A receipt will arrive by email. If you don’t see it, please check spam or promotions.
-        </p>
 
         <div className="mt-8 flex items-center gap-3">
           <a
