@@ -28,11 +28,15 @@ export async function POST(req: Request) {
       const currency = (session.currency ?? '').toUpperCase();
       const bookingId = (session.metadata?.bookingId ?? '') as string;
 
-      let email =
-        session.customer_details?.email ??
-        (typeof session.customer === 'string'
-          ? (await stripe.customers.retrieve(session.customer)).email ?? undefined
-          : undefined);
+      let email: string | undefined = session.customer_details?.email;
+
+      if (!email && typeof session.customer === 'string') {
+        const resp = await stripe.customers.retrieve(session.customer);
+        const customer = (resp as Stripe.Response<Stripe.Customer | Stripe.DeletedCustomer>).data;
+        if (!('deleted' in customer && customer.deleted)) {
+          email = (customer as Stripe.Customer).email ?? undefined;
+        }
+      }
 
       const BREVO_KEY = process.env.BREVO_API_KEY;
       const BREVO_FROM_EMAIL = process.env.BREVO_SENDER_EMAIL;
