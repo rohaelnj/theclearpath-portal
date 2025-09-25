@@ -4,5 +4,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to   = "/.netlify/functions/___netlify-server-handler"
+  to   = "/.netlify/functions/___netlify-server-handler?route=/api/:splat"
   status = 200
+  force = true
