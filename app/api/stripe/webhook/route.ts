@@ -6,8 +6,12 @@ export async function POST(req: Request) {
   const sk = process.env.STRIPE_SECRET_KEY;
   const whsec = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!sig || !sk || !whsec) {
+  if (!sk || !whsec) {
     return new Response('Missing Stripe config', { status: 400 });
+  }
+
+  if (!sig) {
+    return new Response('Missing Stripe-Signature', { status: 400 });
   }
 
   const stripe = new Stripe(sk);
