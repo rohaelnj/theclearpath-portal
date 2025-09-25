@@ -1,15 +1,13 @@
-'use client';
+"use client";
+export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, type ChangeEvent } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
-import { auth } from '@/firebaseClient';
+import React, { useEffect, useState, type ChangeEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
-  sendEmailVerification,
   getRedirectResult,
   onAuthStateChanged,
   GoogleAuthProvider,
@@ -18,7 +16,8 @@ import {
   setPersistence,
   browserLocalPersistence,
   type UserCredential,
-} from 'firebase/auth';
+} from "firebase/auth";
+import { getAuthClient } from "@/lib/firebase";
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -27,17 +26,18 @@ function errMsg(e: unknown): string {
 
 export default function Signup(): React.ReactElement {
   const router = useRouter();
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [name, setName] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [gLoading, setGLoading] = useState<boolean>(false);
 
   useEffect(() => {
     // Ensure session persists across Google redirect
-    setPersistence(auth, browserLocalPersistence).catch(() => { });
+    const auth = getAuthClient();
+    setPersistence(auth, browserLocalPersistence).catch(() => {});
 
     // Only send verified or Google to dashboard
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -49,16 +49,17 @@ export default function Signup(): React.ReactElement {
     // Complete Google redirect flow
     getRedirectResult(auth)
       .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
-      .catch(() => { });
+      .catch(() => {});
 
     return () => unsub();
   }, [router]);
 
   const handleGoogle = async (): Promise<void> => {
     try {
-      setError('');
+      setError("");
       setGLoading(true);
 
+      const auth = getAuthClient();
       await setPersistence(auth, browserLocalPersistence);
 
       const provider = new GoogleAuthProvider();
@@ -88,9 +89,10 @@ export default function Signup(): React.ReactElement {
       return;
     }
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     try {
+      const auth = getAuthClient();
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       const trimmedName = name.trim();
       if (trimmedName) await updateProfile(user, { displayName: trimmedName });
@@ -99,14 +101,13 @@ export default function Signup(): React.ReactElement {
       await fetch('/api/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: user.email || '', 
+        body: JSON.stringify({
+          email: user.email || '',
           displayName: trimmedName || user.email?.split('@')[0] || ''
         }),
       });
 
       setSuccess('Account created! Check your email to verify.');
-      // Stay signed in; verify page will push to /portal after applyActionCode
       setTimeout(() => router.push('/verify-email/sent'), 1200);
     } catch (e: unknown) {
       const msg = errMsg(e);

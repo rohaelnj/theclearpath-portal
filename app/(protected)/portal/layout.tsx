@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState, type ReactNode } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/firebaseClient";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, type ReactNode } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter, usePathname } from 'next/navigation';
+import { getAuthClient } from '@/lib/firebase';
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -11,15 +11,15 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, (user) => {
       if (!user) {
-        router.replace(`/login?next=${encodeURIComponent(pathname || "/portal")}`);
+        router.replace(`/login?next=${encodeURIComponent(pathname || '/portal')}`);
         return;
       }
-      const needsVerify =
-        user.providerData.some((p) => p.providerId === "password") && !user.emailVerified;
+      const needsVerify = user.providerData.some((p) => p.providerId === 'password') && !user.emailVerified;
       if (needsVerify) {
-        router.replace(`/login?verify=1&next=${encodeURIComponent(pathname || "/portal")}`);
+        router.replace(`/login?verify=1&next=${encodeURIComponent(pathname || '/portal')}`);
         return;
       }
       setReady(true);

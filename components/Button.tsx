@@ -2,28 +2,29 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/firebaseClient';
 import {
   GoogleAuthProvider,
   signInWithPopup,
   getAdditionalUserInfo,
   signOut,
 } from 'firebase/auth';
+import { getAuthClient } from '@/lib/firebase';
 
 export default function GoogleButton(): React.ReactElement {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleGoogle = async () => {
+    if (loading) return;
     setLoading(true);
     try {
+      const auth = getAuthClient();
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
       const cred = await signInWithPopup(auth, provider);
       const info = getAdditionalUserInfo(cred);
 
-      // If user clicked Google from *Login* but account doesn’t exist yet:
       if (info?.isNewUser) {
         try { await cred.user.delete(); } catch { }
         await signOut(auth);
@@ -35,6 +36,7 @@ export default function GoogleButton(): React.ReactElement {
     } catch (err) {
       console.error('Google sign-in failed:', err);
       alert('Google sign-in failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -62,7 +64,7 @@ export default function GoogleButton(): React.ReactElement {
         opacity: loading ? 0.7 : 1,
       }}
     >
-      <img src="/google.svg" alt="Google Logo" style={{ width: 24, height: 24 }} />
+      <img src="/google.svg" alt="Google" style={{ width: 24, height: 24 }} />
       {loading ? 'Please wait…' : 'Continue with Google'}
     </button>
   );

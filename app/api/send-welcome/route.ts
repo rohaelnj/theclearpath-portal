@@ -1,4 +1,7 @@
 // app/api/send-welcome/route.ts
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { getAdminAuth } from '@/lib/firebaseAdmin';
@@ -22,8 +25,12 @@ export async function POST(req: NextRequest) {
     if (claims.welcomeSent === true) return NextResponse.json<ApiOk>({ ok: true, sent: false });
 
     const apiKey = process.env.BREVO_API_KEY || '';
-    const templateId = Number(process.env.BREVO_WELCOME_TEMPLATE_ID || '1');
-    if (!apiKey || !templateId) return bad('email-config-missing', 500);
+    const templateId = Number(
+      process.env.BREVO_TEMPLATE_ID_WELCOME ??
+      process.env.BREVO_WELCOME_TEMPLATE_ID ??
+      '1'
+    );
+    if (!apiKey || !templateId || Number.isNaN(templateId)) return bad('email-config-missing', 500);
 
     await axios.post(
       'https://api.brevo.com/v3/smtp/email',

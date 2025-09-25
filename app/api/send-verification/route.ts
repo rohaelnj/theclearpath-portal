@@ -1,4 +1,7 @@
 // app/api/send-verification/route.ts
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { getAdminAuth } from '@/lib/firebaseAdmin';
@@ -36,8 +39,12 @@ export async function POST(req: NextRequest) {
     const verifyUrl = `https://portal.theclearpath.ae/verify-email?oobCode=${encodeURIComponent(oob)}`;
 
     const apiKey = process.env.BREVO_API_KEY || '';
-    const templateId = Number(process.env.BREVO_VERIFY_TEMPLATE_ID || '2');
-    if (!apiKey || !templateId) return bad('email-config-missing', 500);
+    const templateId = Number(
+      process.env.BREVO_TEMPLATE_ID_VERIFY ??
+      process.env.BREVO_VERIFY_TEMPLATE_ID ??
+      '2'
+    );
+    if (!apiKey || !templateId || Number.isNaN(templateId)) return bad('email-config-missing', 500);
 
     await axios.post(
       'https://api.brevo.com/v3/smtp/email',
