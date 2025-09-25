@@ -1,25 +1,12 @@
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export function middleware(req: NextRequest) {
-  const p = req.nextUrl.pathname;
-  if (
-    p.startsWith('/api') ||
-    p.startsWith('/_next') ||
-    p.startsWith('/.netlify') ||
-    p.endsWith('.ico') ||
-    p.endsWith('.png') ||
-    p.endsWith('.jpg') ||
-    p.endsWith('.svg') ||
-    p.endsWith('.txt') ||
-    p.endsWith('.xml')
-  ) {
-    return; // pass-through
-  }
-
-  // Existing middleware logic (none currently)
-  return;
+export function middleware() {
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!.*\\.).*)'],
+  matcher: [
+    // Skip API, internals and assets so the Next runtime can handle them
+    '/((?!api|_next|\\.netlify|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|pdf)).*)',
+  ],
 };
