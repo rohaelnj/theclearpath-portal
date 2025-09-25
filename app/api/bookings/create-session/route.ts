@@ -162,8 +162,8 @@ export async function POST(req: NextRequest) {
     }
 
     const currency = coerceCurrency(payload.currency);
-    // Stripe expects amounts in minor units; AED minimum charge is 200 fils (AED 2.00).
-    const amountFils = Math.max(200, payload.amountAED);
+    // Stripe expects amounts in minor units; enforce business minimum of 300 fils (AED 3.00).
+    const amountFils = Math.max(300, payload.amountAED);
     const baseUrl = resolveBaseUrl(req, env);
 
     const metadata = toStripeMetadata(buildMetadata(payload.bookingId, booking));
