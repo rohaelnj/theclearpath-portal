@@ -1,10 +1,15 @@
 import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-type Search = { session_id?: string; booking?: string };
+type Search = Promise<{ session_id?: string; booking?: string }>; 
 
-export default async function SuccessPage({ searchParams }: { searchParams: Promise<Search> }) {
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Search;
+}) {
   const sp = await searchParams;
   const sessionId = sp.session_id;
   const booking = sp.booking ?? '';
@@ -20,11 +25,14 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
 
   const sk = process.env.STRIPE_SECRET_KEY!;
   const stripe = new Stripe(sk, {});
+
   let status = 'unknown';
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     status = session.payment_status ?? 'unknown';
-  } catch {}
+  } catch {
+    status = 'unknown';
+  }
 
   return (
     <main className="mx-auto max-w-xl p-8">

@@ -1,19 +1,17 @@
-// app/booking/[slug]/page.tsx
 export const dynamic = 'force-dynamic';
 
-type Search = Record<string, string | string[] | undefined>;
+type Search = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function BookingPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<Search>;
+  searchParams?: Search;
 }) {
   const { slug } = await params;
-  const search = await searchParams;
-
-  const cancelled = typeof search.payment === 'string' && search.payment === 'cancelled';
+  const sp = (await searchParams) ?? {};
+  const cancelled = typeof sp.payment === 'string' && sp.payment === 'cancelled';
 
   return (
     <main className="mx-auto max-w-xl p-8">
