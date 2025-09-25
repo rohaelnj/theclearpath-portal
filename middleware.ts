@@ -1,27 +1,28 @@
 // middleware.ts
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
+// Pass-through middleware that explicitly skips API, Next internals, Netlify internals, and common static files.
 export function middleware(req: NextRequest) {
-  const { pathname } = new URL(req.url);
+  const p = req.nextUrl.pathname;
 
+  // Always skip for these prefixes/files
   if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/.netlify') ||
-    pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico'
+    p.startsWith('/api') ||
+    p.startsWith('/_next') ||
+    p.startsWith('/.netlify') ||
+    p === '/favicon.ico' ||
+    p === '/robots.txt' ||
+    p === '/sitemap.xml'
   ) {
     return NextResponse.next();
   }
 
-  const res = NextResponse.next();
-  // Hotfix: remove CSP headers set anywhere upstream
-  res.headers.delete('content-security-policy');
-  res.headers.delete('content-security-policy-report-only');
-  res.headers.set('x-csp-from', 'middleware-temp-strip');
-  return res;
+  // If you need auth/redirect logic for pages, add it **below** this line.
+  return NextResponse.next();
 }
 
+// Only run on routes without a dot (avoids static assets) and lets the skip-list above short-circuit first.
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!.*\\.).*)'],
 };
