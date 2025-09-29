@@ -47,4 +47,10 @@ export function getDb(): Firestore {
   return cachedDb;
 }
 
+export const db = getDb();
+
+export function slotId(tid: string, startIso: string) {
+  return `${tid}_${startIso.replace(/[:.]/g, '-')}`;
+}
+
 export { FieldValue };
