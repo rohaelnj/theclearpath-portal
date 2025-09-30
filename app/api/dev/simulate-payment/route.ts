@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { confirmBookingPaid } from '../../../../src/lib/slots';
+import { confirmBookingPaid } from '@/lib/slots';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

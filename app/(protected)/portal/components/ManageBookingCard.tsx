@@ -1,14 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BRAND, POLICY, SESSION } from '@/lib/brand';
 
 type ManageBookingCardProps = {
-  bookingId: string;
-  therapistName: string;
-  startIso: string; // UTC ISO
-  onReschedule: (bookingId: string) => void;
+  bookingId?: string;
+  therapistName?: string;
+  startIso?: string; // UTC ISO
+  onReschedule?: (bookingId: string) => void;
 };
+
+type DevBookingResult = {
+  bookingId?: string;
+  slotId?: string;
+};
+
+const HOLD_TEST_ENABLED = process.env.NODE_ENV === 'development';
+const HOLD_TEST_WINDOW_MINUTES = 15;
 
 function fmt(dtIso: string) {
   const d = new Date(dtIso);
@@ -19,12 +27,20 @@ function fmt(dtIso: string) {
 }
 
 export default function ManageBookingCard(props: ManageBookingCardProps) {
-  const { bookingId, therapistName, startIso, onReschedule } = props;
+  const bookingId = props.bookingId ?? 'demo-booking';
+  const therapistName = props.therapistName ?? 'Your therapist';
+  const startIso = props.startIso ?? new Date().toISOString();
+  const onReschedule = props.onReschedule ?? (() => {});
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [ok, setOk] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const [devBusy, setDevBusy] = useState(false);
+  const [devErr, setDevErr] = useState<string | null>(null);
+  const [devResult, setDevResult] = useState<DevBookingResult | null>(null);
+  const [devCheckoutUrl, setDevCheckoutUrl] = useState<string | null>(null);
 
   async function submitRefundRequest() {
     setBusy(true);
@@ -40,10 +56,69 @@ export default function ManageBookingCard(props: ManageBookingCardProps) {
       if (!res.ok) throw new Error(data?.error || 'Request failed');
       setOk('Thanks. Our team will review and get back to you shortly.');
       setMessage('');
-    } catch (e: any) {
-      setErr(e.message || 'Failed to submit request');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Failed to submit request');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function devHoldThenCheckout() {
+    if (!HOLD_TEST_ENABLED) return;
+    setDevBusy(true);
+    setDevErr(null);
+    setDevResult(null);
+    setDevCheckoutUrl(null);
+
+    try {
+      const testBookingId = `book-${Date.now()}`;
+      const tid = 't2';
+      const uid = 'manual-test';
+      const startTimeIso = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+      const priceAED = SESSION.singlePriceAED;
+
+      const holdResponse = await fetch('/api/bookings/hold', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: testBookingId,
+          tid,
+          uid,
+          startIso: startTimeIso,
+          priceAED,
+        }),
+      });
+      const holdJson = await holdResponse.json();
+      if (!holdResponse.ok || !holdJson?.ok) {
+        throw new Error(holdJson?.error || 'Hold failed');
+      }
+
+      const bookingData = holdJson.booking as DevBookingResult & { slotId?: string };
+      if (!bookingData.slotId) {
+        throw new Error('Hold missing slotId');
+      }
+
+      setDevResult(bookingData);
+
+      const checkoutResponse = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: testBookingId,
+          slotId: bookingData.slotId,
+          amountMinor: Math.round(priceAED * 100),
+        }),
+      });
+      const checkoutJson = await checkoutResponse.json();
+      if (!checkoutResponse.ok || !checkoutJson?.url) {
+        throw new Error(checkoutJson?.error || 'Checkout failed');
+      }
+
+      setDevCheckoutUrl(checkoutJson.url as string);
+    } catch (error) {
+      setDevErr(error instanceof Error ? error.message : 'Hold/checkout failed');
+    } finally {
+      setDevBusy(false);
     }
   }
 
@@ -142,6 +217,43 @@ export default function ManageBookingCard(props: ManageBookingCardProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {HOLD_TEST_ENABLED && (
+        <div className="mt-8 rounded-2xl border border-dashed border-gray-300 p-4">
+          <div className="text-sm font-semibold text-gray-700">Dev booking flow</div>
+          <p className="mt-1 text-xs text-gray-500">
+            Quickly exercise the hold → checkout flow. Holds expire after {HOLD_TEST_WINDOW_MINUTES} minutes.
+          </p>
+          <button
+            onClick={devHoldThenCheckout}
+            disabled={devBusy}
+            className="mt-3 rounded-xl bg-[#1F4142] px-4 py-2 text-sm text-white disabled:opacity-60"
+          >
+            {devBusy ? 'Processing…' : 'Test hold → checkout'}
+          </button>
+          {devErr && <p className="mt-2 text-xs text-red-600">{devErr}</p>}
+          {!devErr && devResult && (
+            <div className="mt-3 text-xs text-gray-600">
+              <div>
+                Held booking <code>{String(devResult.bookingId ?? 'n/a')}</code>
+              </div>
+              <div>Slot ID: <code>{String(devResult.slotId ?? 'n/a')}</code></div>
+            </div>
+          )}
+          {devCheckoutUrl && (
+            <div className="mt-3 text-xs">
+              <a
+                href={devCheckoutUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#1F4142] underline"
+              >
+                Open Stripe Checkout in new tab
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>

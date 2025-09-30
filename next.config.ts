@@ -7,7 +7,7 @@ const CSP =
 const nextConfig: NextConfig = {
   typedRoutes: true,
   reactStrictMode: true,
-  typescript: { ignoreBuildErrors: true },
+  typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
