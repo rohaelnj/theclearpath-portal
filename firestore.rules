@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function authed() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function role() {
+      return request.auth.token.role;
+    }
+    function isAdmin() {
+      return role() == 'admin';
+    }
+    function isTherapist() {
+      return role() == 'therapist';
+    }
+
+    // USERS: user can read/write self. Admin full.
+    match /users/{userId} {
+      allow read: if authed() && (isAdmin() || userId == uid());
+      allow write: if authed() && (isAdmin() || userId == uid());
+    }
+
+    // THERAPISTS: public read of active therapist profiles; write owner/admin.
+    match /therapists/{tid} {
+      allow read: if true;
+      allow write: if authed() && (isAdmin() || (isTherapist() && request.auth.token.tid == tid));
+    }
+
+    // AVAILABILITY: therapist may edit own; admin full; read authenticated.
+    match /availability/{tid} {
+      allow read: if authed();
+      allow write: if authed() && (isAdmin() || (isTherapist() && request.auth.token.tid == tid));
+    }
+
+    // SLOTS: read authenticated; write therapist on own slots or admin.
+    // Only allow safe field changes client-side; payment/PII never here.
+    match /slots/{slotId} {
+      allow read: if authed();
+      allow create, update: if authed() && (
+        isAdmin() ||
+        (isTherapist() && request.resource.data.tid == request.auth.token.tid)
+      ) && validSlotChange();
+      allow delete: if isAdmin();
+
+      function validSlotChange() {
+        // Allow setting/transitioning limited fields:
+        // tid, start, end, status in {'open','held','booked'}, heldUntil optional.
+        return
+          request.resource.data.keys().hasOnly(['tid','start','end','status','heldUntil']) &&
+          request.resource.data.status in ['open','held','booked'];
+      }
+    }
+
+    // BOOKINGS: patient can create own pending booking; read own;
+    // therapist can read bookings assigned to them; limited updates; admin full.
+    match /bookings/{bid} {
+      allow read: if authed() && (
+        isAdmin() ||
+        (resource.data.userId == uid()) ||
+        (isTherapist() && resource.data.therapistId == request.auth.token.tid)
+      );
+
+      // Create: by patient for self only; block client from writing payment map.
+      allow create: if authed() &&
+        request.resource.data.userId == uid() &&
+        !(request.resource.data.keys().hasAny(['payment'])) &&
+        request.resource.data.status in ['pending','confirmed','cancelled'];
+
+      // Update: patient may update/cancel own pending/confirmed (no payment edits).
+      allow update: if authed() && (
+        isAdmin() ||
+        (
+          resource.data.userId == uid() &&
+          !(request.resource.data.keys().hasAny(['payment'])) &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.therapistId == resource.data.therapistId
+        ) ||
+        (
+          // therapist can set completion status and add notes on own bookings
+          isTherapist() &&
+          resource.data.therapistId == request.auth.token.tid &&
+          request.resource.data.keys().hasOnly([
+            'status','notes','updatedAt','refundId','refundNote','paymentStatus'
+          ])
+        )
+      );
+
+      // Delete: admin only.
+      allow delete: if isAdmin();
+    }
+
+    // AUDIT: write server (Admin SDK bypasses rules); deny client.
+    match /audit/{id} {
+      allow read, write: if false;
+    }
+
+    // SUPPORT REFUND REQUESTS: patient can create + read own; admin read all.
+    match /support_refund_requests/{rid} {
+      allow create: if authed() && request.resource.data.userId == uid();
+      allow read: if authed() && (
+        isAdmin() ||
+        (resource.data.userId == uid())
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // Fallback: deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
