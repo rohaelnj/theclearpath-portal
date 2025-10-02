@@ -63,11 +63,11 @@ export default function JoinSessionButton({
   }, [startIso, endIso, preMinutes, postMinutes, now]);
 
   const baseClass = `w-full rounded-xl px-4 py-2 ${className ?? ''}`;
-  const disabledProps = {
-    type: 'button' as const,
+  const disabledProps: React.ButtonHTMLAttributes<HTMLButtonElement> = {
+    type: 'button',
     disabled: true,
     className: `${baseClass} opacity-60`,
-    'aria-disabled': 'true',
+    'aria-disabled': true,
   };
 
   if (status !== 'confirmed') {
