@@ -1,5 +1,7 @@
 import { getDb, slotId as makeSlotId, FieldValue } from './firestore';
 import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
+import { buildIcs } from './ics';
+import { sendEmail } from './email';
 
 export const SLOT_HOLD_MINUTES = 15;
 const MAX_HOLD_WINDOW_DAYS = 30;
@@ -14,6 +16,7 @@ interface SlotDoc extends DocumentData {
 interface BookingDoc extends DocumentData {
   bookingId?: string;
   slotId?: string;
+  uid?: string;
   status?: string;
   payment?: {
     status?: string;
@@ -21,6 +24,20 @@ interface BookingDoc extends DocumentData {
     amountAED?: number;
     currency?: string;
     stripeId?: string;
+  };
+  start?: Timestamp;
+  end?: Timestamp;
+  jitsi?: {
+    room?: string;
+    url?: string;
+  } | null;
+  email?: string;
+  clientEmail?: string;
+  userEmail?: string;
+  patientEmail?: string;
+  reminders?: {
+    h24?: boolean;
+    h2?: boolean;
   };
 }
 
@@ -169,4 +186,79 @@ export async function confirmBookingPaid(bookingId: string, stripeId: string, am
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
+
+  // Fire-and-forget email with calendar invite
+  const startIso = booking.start instanceof Timestamp ? booking.start.toDate().toISOString() : undefined;
+  const endIso = booking.end instanceof Timestamp ? booking.end.toDate().toISOString() : undefined;
+
+  if (startIso && endIso) {
+    const possibleEmails = [
+      booking.email,
+      booking.clientEmail,
+      booking.userEmail,
+      booking.patientEmail,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    let recipientEmail = possibleEmails[0];
+    let patientName: string | undefined;
+
+    if (!recipientEmail && booking.uid) {
+      try {
+        const userSnap = await db.collection('users').doc(booking.uid).get();
+        if (userSnap.exists) {
+          const userData = userSnap.data() as { email?: string; name?: string; displayName?: string };
+          if (typeof userData?.email === 'string') recipientEmail = userData.email;
+          patientName = typeof userData?.name === 'string' ? userData.name : userData?.displayName;
+        }
+      } catch (error) {
+        console.error('Failed to load user for booking email', error);
+      }
+    }
+
+    if (recipientEmail) {
+      const joinUrl = jitsi.url;
+      const ics = buildIcs({
+        uid: bookingId,
+        startIso,
+        endIso,
+        summary: 'The Clear Path — Therapy Session',
+        description: `Join link: ${joinUrl}`,
+        url: joinUrl,
+      });
+
+      const friendlyStart = new Date(startIso).toLocaleString('en-GB', {
+        timeZone: 'Asia/Dubai',
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      try {
+        await sendEmail({
+          to: recipientEmail,
+          subject: 'Your session is booked — calendar invite attached',
+          text: [
+            `Hi ${patientName || ''}`.trim(),
+            '',
+            'Your therapy session is confirmed.',
+            `Start time: ${friendlyStart}`,
+            `Join link: ${joinUrl}`,
+          ].join('\n'),
+          attachments: [
+            {
+              name: 'session.ics',
+              type: 'text/calendar',
+              content: Buffer.from(ics, 'utf8').toString('base64'),
+            },
+          ],
+          tags: ['booking_confirmation'],
+        });
+      } catch (error) {
+        console.error('Failed to send booking confirmation email', error);
+      }
+    }
+  }
 }
