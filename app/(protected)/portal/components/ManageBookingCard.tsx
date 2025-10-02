@@ -2,11 +2,24 @@
 
 import { useState } from 'react';
 import { BRAND, POLICY, SESSION } from '@/lib/brand';
+import JoinSessionButton from './JoinSessionButton';
+
+type TimestampLike = {
+  toDate: () => Date;
+};
+
+type BookingSummary = {
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  start?: string | Date | TimestampLike;
+  end?: string | Date | TimestampLike;
+  jitsi?: { url?: string } | null;
+};
 
 type ManageBookingCardProps = {
   bookingId?: string;
   therapistName?: string;
-  startIso?: string; // UTC ISO
+  startIso?: string; // fallback start
+  booking?: BookingSummary;
   onReschedule?: (bookingId: string) => void;
 };
 
@@ -26,10 +39,31 @@ function fmt(dtIso: string) {
   })}`;
 }
 
+function toIso(value: string | Date | TimestampLike | undefined): string | null {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object' && typeof value.toDate === 'function') {
+    try {
+      return value.toDate().toISOString();
+    } catch (err) {
+      console.error('Failed to convert timestamp', err);
+      return null;
+    }
+  }
+  return null;
+}
+
 export default function ManageBookingCard(props: ManageBookingCardProps) {
   const bookingId = props.bookingId ?? 'demo-booking';
   const therapistName = props.therapistName ?? 'Your therapist';
   const startIso = props.startIso ?? new Date().toISOString();
+  const booking = props.booking;
+  const bookingStatus = booking?.status ?? 'pending';
+  const bookingStartIso = toIso(booking?.start) ?? startIso;
+  const bookingEndIso =
+    toIso(booking?.end) ?? new Date(new Date(bookingStartIso).getTime() + SESSION.minutes * 60 * 1000).toISOString();
+  const bookingJitsiUrl = booking?.jitsi?.url ?? undefined;
   const onReschedule = props.onReschedule ?? (() => {});
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -155,6 +189,17 @@ export default function ManageBookingCard(props: ManageBookingCardProps) {
           Need help?
         </button>
       </div>
+
+      {bookingStartIso && bookingEndIso && (
+        <div className="mt-4">
+          <JoinSessionButton
+            status={bookingStatus}
+            startIso={bookingStartIso}
+            endIso={bookingEndIso}
+            jitsiUrl={bookingJitsiUrl}
+          />
+        </div>
+      )}
 
       {open && (
         <div
