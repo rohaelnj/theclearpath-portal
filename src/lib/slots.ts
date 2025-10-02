@@ -145,6 +145,11 @@ export async function confirmBookingPaid(bookingId: string, stripeId: string, am
   const slotRef = db.collection('slots').doc(booking.slotId);
   const amountFils = Math.round(amountAED * 100);
 
+  const jitsi = {
+    room: `tcp-${bookingId}`,
+    url: `https://meet.jit.si/tcp-${bookingId}`,
+  } as const;
+
   await db.runTransaction(async (tx) => {
     tx.update(bookingRef, {
       status: 'confirmed',
@@ -154,6 +159,7 @@ export async function confirmBookingPaid(bookingId: string, stripeId: string, am
       'payment.amountAED': amountAED,
       'payment.stripeId': stripeId,
       paymentStatus: 'paid',
+      jitsi,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
