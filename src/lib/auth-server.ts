@@ -95,3 +95,5 @@ export async function resolveUserFromCookies(store?: CookieLike): Promise<Portal
 export async function getUserFromCookie(store?: CookieLike, _origin?: string): Promise<PortalUser | null> {
   return resolveUserFromCookies(store);
 }
+
+export { getDb } from './firestore';

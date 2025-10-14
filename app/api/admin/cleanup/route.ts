@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Firestore, Query } from 'firebase-admin/firestore';
-import { getDb } from '@/lib/firestore';
+import { getDb } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  // visible probe: proves the route exists
   return NextResponse.json({ ok: false, error: 'method_not_allowed' }, { status: 405 });
 }
 
@@ -17,18 +18,16 @@ function isAuthorized(req: NextRequest): boolean {
 
 async function deleteByQuery(db: Firestore, baseQuery: Query, batchSize = 400): Promise<number> {
   let deleted = 0;
-
+  // batch-delete in pages to avoid 500s on large collections
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const snap = await baseQuery.limit(batchSize).get();
     if (snap.empty) break;
-
     const batch = db.batch();
     snap.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
-
     deleted += snap.size;
   }
-
   return deleted;
 }
 
