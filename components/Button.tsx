@@ -65,8 +65,9 @@ export default function Button({
         {children}
       </span>
     );
+    const { target, rel, title } = rest as AnchorHTMLAttributes<HTMLAnchorElement>;
     return (
-      <a href={href} className={classes} {...rest}>
+      <a href={href} className={classes} target={target} rel={rel} title={title}>
         {halo}
         {content}
       </a>

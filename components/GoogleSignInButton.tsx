@@ -39,7 +39,7 @@ export default function GoogleSignInButton(): React.ReactElement {
       }
 
       await persistSessionCookie(cred.user);
-      router.replace('/intake');
+      window.location.replace('/portal');
     } catch (err) {
       console.error('Google sign-in failed:', err);
       alert('Google sign-in failed. Please try again.');
