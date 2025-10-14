@@ -41,7 +41,7 @@ function GoogleButton({ onError }: { onError: (m: string) => void }) {
       }
 
       await persistSessionCookie(cred.user);
-      router.replace('/intake');
+      window.location.replace('/intake');
     } catch (e) {
       console.error(e);
       onError('Google sign-in failed. Please try again.');
@@ -90,7 +90,7 @@ export default function LoginPage(): React.ReactElement {
     const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u) {
-        persistSessionCookie(u).finally(() => router.replace('/intake'));
+        persistSessionCookie(u).finally(() => window.location.replace('/intake'));
       } else {
         clearSessionCookie().catch(() => {});
       }
@@ -130,7 +130,7 @@ export default function LoginPage(): React.ReactElement {
       }
 
       await persistSessionCookie(user);
-      router.push('/intake');
+      window.location.replace('/intake');
     } catch (err: any) {
       setError(mapError(err?.code));
     } finally {

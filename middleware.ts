@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getUserFromCookie } from '@/lib/auth-server';
-import type { PortalUser } from '@/lib/auth';
+import { getUserFromCookie, type PortalUser } from '@/lib/auth';
 
 const PUBLIC_PATHS = [
   '/',

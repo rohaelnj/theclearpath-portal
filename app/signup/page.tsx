@@ -43,9 +43,11 @@ export default function Signup(): React.ReactElement {
     // Only send verified or Google to dashboard
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return;
-      const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
+      const isVerified = u.emailVerified || u.providerData.some((p) => p.providerId === 'google.com');
       if (isVerified) {
-        persistSessionCookie(u).finally(() => router.replace('/intake'));
+        persistSessionCookie(u).finally(() => {
+          window.location.replace('/portal');
+        });
       }
     });
 
@@ -53,7 +55,9 @@ export default function Signup(): React.ReactElement {
     getRedirectResult(auth)
       .then((res: UserCredential | null) => {
         if (res?.user) {
-          persistSessionCookie(res.user).finally(() => router.replace('/intake'));
+          persistSessionCookie(res.user).finally(() => {
+            window.location.replace('/portal');
+          });
         }
       })
       .catch(() => {});
@@ -75,7 +79,7 @@ export default function Signup(): React.ReactElement {
       try {
         const cred = await signInWithPopup(auth, provider);
         await persistSessionCookie(cred.user);
-        router.replace('/intake');
+        window.location.replace('/portal');
       } catch (err: any) {
         const code = err?.code ?? '';
         if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {

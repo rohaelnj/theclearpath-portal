@@ -4,8 +4,6 @@ export const dynamic = 'force-dynamic';
 
 import React from 'react';
 import { applyActionCode, checkActionCode, type Auth } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
-import type { Route } from 'next';
 import { getAuthClient } from '@/lib/firebase';
 
 // Initialize client auth only in effects to avoid server rendering issues
@@ -28,7 +26,6 @@ function extractOobCode(): string {
 }
 
 export default function VerifyEmailPage(): React.ReactElement {
-  const router = useRouter();
   const [auth, setAuth] = React.useState<Auth | null>(null);
   const [code, setCode] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -79,8 +76,8 @@ export default function VerifyEmailPage(): React.ReactElement {
       }
 
       setStatus('done');
-      const target: Route = '/intake';
-      setTimeout(() => router.replace(target), 800);
+      const target = '/portal';
+      setTimeout(() => window.location.replace(target), 800);
     } catch {
       setError('Verification failed. The code may have been used already.');
       setStatus('error');
