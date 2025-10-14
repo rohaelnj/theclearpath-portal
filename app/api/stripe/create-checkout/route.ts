@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { aedToFils, PLANS, SESSION } from '@/lib/brand';
+import { getDb, FieldValue } from '@/lib/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-08-27.basil' });
 
@@ -36,10 +37,36 @@ export async function POST(req: NextRequest) {
       const plan = PLANS[body.plan];
       if (!plan) return NextResponse.json({ error: 'Unknown plan' }, { status: 400 });
 
+      const customerEmail = body.customerEmail?.trim();
+      if (!customerEmail) {
+        return NextResponse.json({ error: 'missing_email' }, { status: 400 });
+      }
+
+      const normalizedEmail = customerEmail.toLowerCase();
+
+      try {
+        const db = getDb();
+        const userQuery = await db.collection('users').where('email', '==', normalizedEmail).limit(1).get();
+        if (!userQuery.empty) {
+          await userQuery.docs[0].ref.set(
+            {
+              planSelected: true,
+              planKey: plan.key,
+              planSelectedAt: FieldValue.serverTimestamp(),
+              subscriptionActive: false,
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+        }
+      } catch (error) {
+        console.error('Failed to mark planSelected', error);
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_types: ['card'],
-        customer_email: body.customerEmail,
+        customer_email: customerEmail,
         line_items: [
           {
             price_data: {

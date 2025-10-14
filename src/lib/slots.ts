@@ -5,6 +5,7 @@ import { sendEmail } from './email';
 
 export const SLOT_HOLD_MINUTES = 15;
 const MAX_HOLD_WINDOW_DAYS = 30;
+const MIN_BOOKING_LEAD_HOURS = 72;
 
 interface SlotDoc extends DocumentData {
   slotId?: string;
@@ -72,6 +73,11 @@ export async function holdSlotAndDraftBooking(params: HoldParams) {
   const now = new Date();
   if (startDate.getTime() < now.getTime()) {
     throw new Error('start_in_past');
+  }
+
+  const earliestAllowed = new Date(now.getTime() + MIN_BOOKING_LEAD_HOURS * 60 * 60 * 1000);
+  if (startDate.getTime() < earliestAllowed.getTime()) {
+    throw new Error('start_too_soon');
   }
 
   const maxDate = new Date(now.getTime() + MAX_HOLD_WINDOW_DAYS * 24 * 60 * 60 * 1000);

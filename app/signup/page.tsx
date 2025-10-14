@@ -18,6 +18,7 @@ import {
   type UserCredential,
 } from "firebase/auth";
 import { getAuthClient } from "@/lib/firebase";
+import { persistSessionCookie } from "@/lib/session";
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
@@ -43,12 +44,18 @@ export default function Signup(): React.ReactElement {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return;
       const isVerified = u.emailVerified || u.providerData.some(p => p.providerId === 'google.com');
-      if (isVerified) router.replace('/portal');
+      if (isVerified) {
+        persistSessionCookie(u).finally(() => router.replace('/intake'));
+      }
     });
 
     // Complete Google redirect flow
     getRedirectResult(auth)
-      .then((res: UserCredential | null) => { if (res?.user) router.replace('/portal'); })
+      .then((res: UserCredential | null) => {
+        if (res?.user) {
+          persistSessionCookie(res.user).finally(() => router.replace('/intake'));
+        }
+      })
       .catch(() => {});
 
     return () => unsub();
@@ -66,8 +73,9 @@ export default function Signup(): React.ReactElement {
       provider.setCustomParameters({ prompt: 'select_account' });
 
       try {
-        await signInWithPopup(auth, provider);
-        router.replace('/portal');
+        const cred = await signInWithPopup(auth, provider);
+        await persistSessionCookie(cred.user);
+        router.replace('/intake');
       } catch (err: any) {
         const code = err?.code ?? '';
         if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {

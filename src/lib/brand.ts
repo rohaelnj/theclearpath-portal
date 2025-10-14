@@ -49,7 +49,18 @@ export const BRAND = {
 // ===== Sessions & Plans =====
 export const SESSION = {
   minutes: 50,
-  singlePriceAED: 300 as AED, // single 50-min session
+  singlePriceAED: 367.5 as AED, // public pay-as-you-go rate (VAT incl.)
+  messagingWindow: {
+    repliesPerDay: 1,
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const,
+    hours: '10:00–18:00 Asia/Dubai',
+  },
+  executiveEmergencyCalls: {
+    perMonth: 4,
+    minutesEach: 30,
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const,
+    hours: '10:00–18:00 Asia/Dubai',
+  },
 } as const;
 
 export type PlanKey = 'essential' | 'premium' | 'executive';
@@ -59,30 +70,46 @@ export interface Plan {
   name: string;
   monthlyAED: AED;
   sessionsIncluded: number;
-  perks: string[];
+  tagline: string;
+  includes: string[];
+  badge?: 'Most Popular' | 'Best Value';
 }
 
 export const PLANS: Record<PlanKey, Plan> = {
   essential: {
     key: 'essential',
     name: 'Essential Plan',
-    monthlyAED: 1200,
+    monthlyAED: 1600,
     sessionsIncluded: 4,
-    perks: ['4× 50-min sessions/month'],
+    tagline: 'Baseline care to keep momentum steady.',
+    includes: ['4× 50-min sessions every month', 'Private, secure portal access'],
   },
   premium: {
     key: 'premium',
     name: 'Premium Plan',
-    monthlyAED: 2200,
-    sessionsIncluded: 8,
-    perks: ['8× 50-min sessions/month', 'Emergency call access'],
+    monthlyAED: 1990,
+    sessionsIncluded: 4,
+    tagline: 'Our most loved plan. Live sessions plus weekday therapist replies.',
+    includes: [
+      '4× 50-min sessions every month',
+      'Secure messaging with 1 therapist reply/day (Mon–Fri 10:00–18:00 Gulf time)',
+    ],
+    badge: 'Most Popular',
   },
   executive: {
     key: 'executive',
-    name: 'Executive Plan',
-    monthlyAED: 3500,
-    sessionsIncluded: 8,
-    perks: ['8× sessions', 'Unlimited chat/text support', 'Same-day emergency calls'],
+    name: 'Executive Only Plan',
+    monthlyAED: 2990,
+    sessionsIncluded: 4,
+    tagline: 'High-impact container with rapid support when life is moving fast.',
+    includes: [
+      '4× 50-min sessions every month',
+      'Secure messaging with 1 therapist reply/day (Mon–Fri 10:00–18:00 Gulf time)',
+      '4× 30-min emergency call credits/month (Mon–Fri 10:00–18:00 Gulf time)',
+      'Future-Self Journal access',
+      'Monthly executive workshop seat included',
+    ],
+    badge: 'Best Value',
   },
 } as const;
 
@@ -106,23 +133,26 @@ export type RefundReason =
   | 'emergency_exception'; // discretionary
 
 export const POLICY = {
-  // Windows
   refundWindowHours: 24,
-  rescheduleWindowHours: 12,
-
-  // Text blocks for Terms & Conditions (paste-ready)
+  rescheduleWindowHours: 24,
+  noShowGraceMinutes: 15,
+  subscriptionCarryForwardDays: 14,
   terms: {
-    headline: 'Refunds & Cancellations',
+    headline: 'Refund & Cancellation Policy',
     body: [
-      'Bookings may be rescheduled up to 24 hours before the session at no cost.',
-      'Client-initiated cancellations ≥24 hours before start: refund to the original payment method minus non-refundable card processing fees.',
-      'Late cancellations (<24h) and no-shows: non-refundable.',
-      'Provider-initiated cancellations: full refund to the original payment method.',
-      'Packages: refunds are pro-rated for unused sessions minus processing fees; unused sessions expire after 6 months.',
-      'Exceptions: documented emergencies may receive one courtesy reschedule or refund at our discretion.',
+      'All sessions and subscriptions are paid in advance. Prices show AED with VAT included where applicable.',
+      'Cancel 24 or more hours before start for a full refund to the original payment method.',
+      'Cancel inside 24 hours or arrive 15 minutes late (no-show) and the session is non-refundable.',
+      'Completed sessions are final and not refundable.',
+      'One complimentary reschedule is allowed per session if requested 24+ hours ahead.',
+      'Subscription sessions must be rebooked within 14 days of the original slot or within the same billing cycle—unused sessions then expire.',
+      'Cancel subscriptions anytime to stop future renewals; delivered weeks are not refundable.',
+      'If a renewal is processed and no sessions occur in that new period, unused weeks can be refunded pro-rata on request within 30 days.',
+      'Provider-initiated cancellations may be rescheduled at no cost or refunded in full.',
+      'Documented emergencies reported within 30 days may qualify for refunds minus a 10% administrative fee.',
     ],
     feeLine:
-      'Card processing fees from the original transaction are non-refundable. For client-initiated cancellations we refund the session amount less the non-refundable processing fees. For provider-caused cancellations, we refund in full.',
+      'Approved refunds are processed within 7–10 business days. Chargebacks or disputes may pause access until resolved.',
   },
 } as const;
 

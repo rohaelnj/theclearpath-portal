@@ -133,21 +133,45 @@ async function ensureSubscriptionMetadata(session: Stripe.Checkout.Session) {
   const userQ = await db.collection('users').where('email', '==', session.customer_email).limit(1).get();
   if (userQ.empty) return;
 
-  const userRef = userQ.docs[0].ref;
-  await userRef.update({
+  const doc = userQ.docs[0];
+  const userRef = doc.ref;
+  const status =
+    subscription.status === 'active'
+      ? 'active'
+      : subscription.status === 'trialing'
+      ? 'trialing'
+      : subscription.status === 'incomplete'
+      ? 'incomplete'
+      : subscription.status ?? 'unknown';
+
+  const isActive = status === 'active' || status === 'trialing';
+  const now = FieldValue.serverTimestamp();
+
+  const updates: Record<string, unknown> = {
     subscription: {
       plan,
-      status:
-        subscription.status === 'active'
-          ? 'active'
-          : subscription.status === 'incomplete'
-          ? 'incomplete'
-          : 'past_due',
+      status,
       stripeCustomerId: customerId,
       stripeSubscriptionId: subId,
       currentPeriodEnd: periodEnd,
     },
-  });
+    subscriptionActive: isActive,
+    planSelected: true,
+    updatedAt: now,
+  };
+
+  const data = doc.data();
+  if (plan && data?.planKey !== plan) {
+    updates.planKey = plan;
+  }
+  if (!data?.planSelectedAt) {
+    updates.planSelectedAt = now;
+  }
+  if (isActive) {
+    updates.subscriptionActivatedAt = now;
+  }
+
+  await userRef.set(updates, { merge: true });
 }
 
 export async function POST(req: NextRequest) {

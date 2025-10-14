@@ -13,6 +13,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
+import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
 
 function GoogleButton({ onError }: { onError: (m: string) => void }) {
   const [loading, setLoading] = React.useState(false);
@@ -33,12 +34,14 @@ function GoogleButton({ onError }: { onError: (m: string) => void }) {
       if (info?.isNewUser) {
         try { await cred.user.delete(); } catch { }
         await signOut(auth);
+        await clearSessionCookie();
         onError('Please sign up first.');
         router.replace(`/signup?email=${encodeURIComponent(email)}&from=google`);
         return;
       }
 
-      router.replace('/portal');
+      await persistSessionCookie(cred.user);
+      router.replace('/intake');
     } catch (e) {
       console.error(e);
       onError('Google sign-in failed. Please try again.');
@@ -86,7 +89,11 @@ export default function LoginPage(): React.ReactElement {
   React.useEffect(() => {
     const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) router.replace('/portal');
+      if (u) {
+        persistSessionCookie(u).finally(() => router.replace('/intake'));
+      } else {
+        clearSessionCookie().catch(() => {});
+      }
     });
     return () => unsub();
   }, [router]);
@@ -117,11 +124,13 @@ export default function LoginPage(): React.ReactElement {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: user.email || '', displayName }),
         });
+        await clearSessionCookie();
         router.replace('/verify-email/sent');
         return;
       }
 
-      router.push('/portal');
+      await persistSessionCookie(user);
+      router.push('/intake');
     } catch (err: any) {
       setError(mapError(err?.code));
     } finally {

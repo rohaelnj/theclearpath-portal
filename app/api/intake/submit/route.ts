@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
     await userRef.set(
       {
         assignedTid: tid,
+        surveyCompleted: true,
+        surveyCompletedAt: now,
         intake: {
           answers,
           notes: body.notes ?? '',

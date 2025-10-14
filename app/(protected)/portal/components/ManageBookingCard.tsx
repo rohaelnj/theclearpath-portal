@@ -54,17 +54,48 @@ function toIso(value: string | Date | TimestampLike | undefined): string | null 
   return null;
 }
 
+function EmptyBookingCard() {
+  return (
+    <div className="w-full rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="text-sm font-semibold text-gray-700">No upcoming session yet</div>
+      <p className="mt-2 text-sm text-gray-600">
+        Once you schedule a session, the details will appear here. In the meantime you can review open plans or request
+        a booking.
+      </p>
+      <a
+        href="/plans"
+        className="mt-4 inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium text-white"
+        style={{ backgroundColor: BRAND.colors.teal }}
+      >
+        View plans
+      </a>
+    </div>
+  );
+}
+
 export default function ManageBookingCard(props: ManageBookingCardProps) {
-  const bookingId = props.bookingId ?? 'demo-booking';
-  const therapistName = props.therapistName ?? 'Your therapist';
-  const startIso = props.startIso ?? new Date().toISOString();
   const booking = props.booking;
-  const bookingStatus = booking?.status ?? 'pending';
-  const bookingStartIso = toIso(booking?.start) ?? startIso;
+  const bookingStartIso = toIso(booking?.start) ?? props.startIso ?? null;
+
+  if (!bookingStartIso) {
+    return <EmptyBookingCard />;
+  }
+
+  const bookingId =
+    props.bookingId ?? (booking && 'bookingId' in booking ? String((booking as Record<string, unknown>).bookingId) : null);
+
+  if (!bookingId) {
+    return <EmptyBookingCard />;
+  }
+
   const bookingEndIso =
-    toIso(booking?.end) ?? new Date(new Date(bookingStartIso).getTime() + SESSION.minutes * 60 * 1000).toISOString();
+    toIso(booking?.end) ??
+    new Date(new Date(bookingStartIso).getTime() + SESSION.minutes * 60 * 1000).toISOString();
+
+  const therapistName = props.therapistName ?? 'Your therapist';
+  const bookingStatus = booking?.status ?? 'pending';
   const bookingJitsiUrl = booking?.jitsi?.url ?? undefined;
-  const onReschedule = props.onReschedule ?? (() => {});
+  const onReschedule = props.onReschedule;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -162,17 +193,24 @@ export default function ManageBookingCard(props: ManageBookingCardProps) {
         <div>
           <div className="text-sm text-gray-600">Upcoming session</div>
           <div className="mt-1 text-lg font-semibold" style={{ color: BRAND.colors.teal }}>
-            {fmt(startIso)} · {SESSION.minutes} min
+            {fmt(bookingStartIso)} ·{' '}
+            {Math.max(
+              SESSION.minutes,
+              Math.round((new Date(bookingEndIso).getTime() - new Date(bookingStartIso).getTime()) / 60000),
+            )}{' '}
+            min
           </div>
           <div className="text-sm text-gray-700">With {therapistName}</div>
         </div>
-        <button
-          onClick={() => onReschedule(bookingId)}
-          className="rounded-xl px-4 py-2 text-white"
-          style={{ backgroundColor: BRAND.colors.teal }}
-        >
-          Reschedule
-        </button>
+        {bookingId && typeof onReschedule === 'function' ? (
+          <button
+            onClick={() => onReschedule(bookingId)}
+            className="rounded-xl px-4 py-2 text-white"
+            style={{ backgroundColor: BRAND.colors.teal }}
+          >
+            Reschedule
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-3 text-xs text-gray-600">

@@ -79,7 +79,7 @@ export default function VerifyEmailPage(): React.ReactElement {
       }
 
       setStatus('done');
-      const target: Route = '/portal';
+      const target: Route = '/intake';
       setTimeout(() => router.replace(target), 800);
     } catch {
       setError('Verification failed. The code may have been used already.');

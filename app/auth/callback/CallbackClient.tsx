@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { Route } from 'next';
 import { signInWithCustomToken } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
+import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
 
 function normalizeNext(raw: string | null): Route {
-  const fallback: Route = '/portal';
+  const fallback: Route = '/intake';
   if (!raw) return fallback;
   if (raw.startsWith('http://') || raw.startsWith('https://')) return fallback;
   const path = raw.startsWith('/') ? raw : `/${raw}`;
@@ -29,9 +30,13 @@ export default function CallbackClient(): React.ReactElement {
       try {
         const auth = getAuthClient();
         await signInWithCustomToken(auth, token);
+        if (auth.currentUser) {
+          await persistSessionCookie(auth.currentUser);
+        }
         router.replace(next);
       } catch (e) {
         setErr((e as Error).message);
+        await clearSessionCookie();
         router.replace(fail);
       }
     })();
