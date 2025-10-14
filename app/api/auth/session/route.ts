@@ -11,8 +11,19 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await resolveUserFromCookies(req.cookies);
-    return NextResponse.json({ user });
+    const resolved = await resolveUserFromCookies(req.cookies);
+    if (!resolved) {
+      return NextResponse.json({ user: null });
+    }
+
+    const safe = {
+      ...resolved,
+      surveyCompleted: Boolean(resolved.surveyCompleted),
+      planSelected: Boolean(resolved.planSelected),
+      subscriptionActive: Boolean(resolved.subscriptionActive),
+    };
+
+    return NextResponse.json({ user: safe });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'session_error';
     return NextResponse.json({ error: message, user: null }, { status: 500 });

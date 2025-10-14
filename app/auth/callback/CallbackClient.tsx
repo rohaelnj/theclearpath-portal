@@ -44,8 +44,8 @@ export default function CallbackClient(): React.ReactElement {
   }, [params]);
 
   return (
-    <main style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui' }}>
-      <p>{err ? 'Verification failed.' : 'Finishing sign-in…'}</p>
-    </main>
+    <div className="grid min-h-[50vh] place-items-center">
+      <p className="text-sm text-neutral-600">{err ? 'Verification failed.' : 'Finishing sign-in…'}</p>
+    </div>
   );
 }

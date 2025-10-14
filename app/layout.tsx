@@ -1,48 +1,66 @@
-// app/layout.tsx
-import './globals.css';
-import Link from 'next/link';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { BRAND } from '@/lib/brand';
+import Script from 'next/script';
+import './globals.css';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export const metadata: Metadata = {
-  title: 'The Clear Path',
-  description: 'Therapy rooted in the UAE with licensed experts, private portal, and culturally aware care.',
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: '#DED4C8',
+  metadataBase: new URL('https://portal.theclearpath.ae'),
+  title: 'The Clear Path — Discreet Online Therapy in Dubai & GCC',
+  description:
+    'Confidential, flexible, and affordable online therapy in Dubai and across the GCC. Licensed UAE therapists. Start your clear path.',
+  keywords: [
+    'online therapy dubai',
+    'online counseling dubai',
+    'therapist dubai',
+    'psychologist dubai',
+    'online therapy uae',
+    'teletherapy uae',
+    'couples therapy dubai',
+    'anxiety therapy dubai',
+    'depression therapy dubai',
+    'cbt therapy dubai',
+    'arabic therapist dubai',
+    'affordable therapy dubai',
+    'best therapist in dubai',
+    'female therapist dubai',
+    'teen therapy dubai',
+    'virtual therapy dubai',
+    'confidential therapy dubai',
+    'marriage counseling dubai',
+    'adhd assessment dubai online',
+  ],
+  alternates: { canonical: 'https://portal.theclearpath.ae' },
+  openGraph: {
+    title: 'The Clear Path — Discreet Online Therapy',
+    description: 'Licensed UAE therapists. Confidential, flexible, online.',
+    url: 'https://portal.theclearpath.ae',
+    siteName: 'The Clear Path',
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const year = new Date().getFullYear();
+  const gaId = process.env.NEXT_PUBLIC_GA4_ID;
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-[#1F4142] antialiased">
-        <div className="flex min-h-screen flex-col">
-          <main className="flex-1">{children}</main>
-          <footer className="border-t border-[#1F4142]/10 bg-white/90">
-            <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 text-sm text-[#1F4142]/80 md:flex-row">
-              <div className="text-center md:text-left">
-                © {year} {BRAND.name}. All rights reserved.
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Link className="transition hover:text-[#1F4142]" href="/legal/refund-and-cancellation-policy">
-                  Refund & Cancellation
-                </Link>
-                <Link className="transition hover:text-[#1F4142]" href="/legal/privacy-policy">
-                  Privacy Policy
-                </Link>
-                <a className="transition hover:text-[#1F4142]" href={`mailto:${BRAND.supportEmail}`}>
-                  support@theclearpath.ae
-                </a>
-              </div>
-            </div>
-          </footer>
-        </div>
+      <body className="bg-[#EDE6DC] text-[#1F4142] antialiased">
+        <Header />
+        <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">{children}</main>
+        <Footer />
+        {gaId ? (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script
+              id="ga4-init"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${gaId}', { anonymize_ip: true });`,
+              }}
+            />
+          </>
+        ) : null}
       </body>
     </html>
   );

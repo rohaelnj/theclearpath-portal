@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  getAdditionalUserInfo,
-  signOut,
-} from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, signOut } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
 
-export default function GoogleSignInButton(): React.ReactElement {
+type Props = {
+  className?: string;
+};
+
+export default function GoogleSignInButton({ className = '' }: Props): React.ReactElement {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -53,25 +52,9 @@ export default function GoogleSignInButton(): React.ReactElement {
       type="button"
       onClick={handleGoogle}
       disabled={loading}
-      style={{
-        width: '100%',
-        padding: '0.85rem',
-        backgroundColor: '#fff',
-        color: '#1F4142',
-        fontWeight: 'bold',
-        border: '1.5px solid #1F4142',
-        borderRadius: 6,
-        cursor: loading ? 'not-allowed' : 'pointer',
-        fontSize: '1.05rem',
-        marginTop: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.7rem',
-        opacity: loading ? 0.7 : 1,
-      }}
+      className={`flex w-full items-center justify-center gap-3 rounded-full border border-[#1F4142] px-5 py-3 text-sm font-medium text-[#1F4142] transition hover:bg-[#1F4142]/5 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
-      <img src="/google.svg" alt="Google" style={{ width: 24, height: 24 }} />
+      <img src="/google.svg" alt="Google" className="h-6 w-6" />
       {loading ? 'Please wait…' : 'Continue with Google'}
     </button>
   );

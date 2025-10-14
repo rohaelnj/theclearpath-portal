@@ -1,3 +1,5 @@
+import type { NextRequest } from 'next/server';
+import { cookies } from 'next/headers';
 import type { PortalUser } from './auth';
 import { getAdminAuth } from './firebaseAdmin';
 import { getDb, FieldValue } from './firestore';
@@ -97,3 +99,16 @@ export async function getUserFromCookie(store?: CookieLike, _origin?: string): P
 }
 
 export { getDb } from './firestore';
+
+export async function getCurrentUserServer(req?: NextRequest): Promise<PortalUser | null> {
+  if (req) {
+    return resolveUserFromCookies(req.cookies);
+  }
+  try {
+    const store = cookies();
+    return resolveUserFromCookies(store as unknown as CookieLike);
+  } catch (error) {
+    console.error('getCurrentUserServer failed', error);
+    return null;
+  }
+}

@@ -6,13 +6,6 @@ type LogoProps = {
 
 export default function Logo({ className = 'h-7 w-auto' }: LogoProps) {
   return (
-    <Image
-      src="/logo.png"
-      alt="The Clear Path"
-      width={180}
-      height={40}
-      className={className}
-      priority
-    />
+    <Image src="/logo.png" alt="The Clear Path" width={160} height={40} className={className} priority />
   );
 }

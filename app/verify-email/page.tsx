@@ -85,53 +85,53 @@ export default function VerifyEmailPage(): React.ReactElement {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <h1 className="mb-2 text-2xl font-semibold text-gray-900">Verify your email</h1>
+    <section className="mx-auto w-full max-w-md py-12">
+      <h1 className="text-3xl font-semibold text-neutral-900">Verify your email</h1>
+      <p className="mt-2 text-sm text-neutral-600">
+        {status === 'idle' && 'Missing verification code.'}
+        {status === 'checking' && 'Checking code…'}
+        {status === 'ready' && `Code looks valid for ${email || 'this account'}.`}
+        {status === 'verifying' && 'Verifying…'}
+        {status === 'done' && 'Verified. Redirecting to your portal…'}
+        {status === 'error' && error}
+      </p>
 
-        <p className="mb-4 text-sm text-gray-600">
-          {status === 'idle' && 'Missing verification code.'}
-          {status === 'checking' && 'Checking code…'}
-          {status === 'ready' && `Code looks valid for ${email || 'your account'}.`}
-          {status === 'verifying' && 'Verifying…'}
-          {status === 'done' && 'Verified. Redirecting to your portal…'}
-          {status === 'error' && error}
-        </p>
+      <label htmlFor="code" className="mt-6 block text-sm font-medium text-neutral-700">
+        Verification code
+      </label>
+      <input
+        id="code"
+        value={code}
+        onChange={(e) => setCode(e.target.value.trim())}
+        className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+        placeholder="Paste oobCode here"
+      />
 
-        <label htmlFor="code" className="mb-1 block text-sm font-medium text-gray-900">
-          Verification code
-        </label>
-        <input
-          id="code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.trim())}
-          className="mb-3 w-full rounded-xl border border-gray-300 px-3 py-2"
-          placeholder="Paste oobCode here"
-        />
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => handleCheck(code)}
-            className="rounded-2xl bg-gray-200 px-4 py-2 text-gray-900"
-            disabled={!code || status === 'checking' || status === 'verifying'}
-          >
-            Check
-          </button>
-          <button
-            type="button"
-            onClick={handleVerify}
-            className="rounded-2xl bg-[#1F4142] px-4 py-2 text-white disabled:opacity-50"
-            disabled={status !== 'ready'}
-          >
-            Verify now
-          </button>
-        </div>
-
-        <p className="mt-6 text-sm text-gray-600">
-          Didn’t get the email? <a className="underline" href="/verify-email/sent">Resend verification</a>
-        </p>
+      <div className="mt-4 flex gap-3">
+        <button
+          type="button"
+          onClick={() => handleCheck(code)}
+          className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
+          disabled={!code || status === 'checking' || status === 'verifying'}
+        >
+          Check
+        </button>
+        <button
+          type="button"
+          onClick={handleVerify}
+          className="rounded-full bg-[#1F4142] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          disabled={status !== 'ready'}
+        >
+          Verify now
+        </button>
       </div>
-    </main>
+
+      <p className="mt-6 text-sm text-neutral-600">
+        Didn’t get the email?{' '}
+        <a className="font-medium text-[#1F4142] underline" href="/verify-email/sent">
+          Resend verification
+        </a>
+      </p>
+    </section>
   );
 }

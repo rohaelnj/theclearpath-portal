@@ -1,238 +1,139 @@
 'use client';
 
-import React from 'react';
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  getAdditionalUserInfo,
-  signOut,
-} from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 
-function GoogleButton({ onError }: { onError: (m: string) => void }) {
-  const [loading, setLoading] = React.useState(false);
-  const router = useRouter();
-
-  const handleGoogle = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const auth = getAuthClient();
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const cred = await signInWithPopup(auth, provider);
-
-      const info = getAdditionalUserInfo(cred);
-      const email = cred.user.email ?? '';
-
-      if (info?.isNewUser) {
-        try { await cred.user.delete(); } catch { }
-        await signOut(auth);
-        await clearSessionCookie();
-        onError('Please sign up first.');
-        router.replace(`/signup?email=${encodeURIComponent(email)}&from=google`);
-        return;
-      }
-
-      await persistSessionCookie(cred.user);
-      window.location.replace('/intake');
-    } catch (e) {
-      console.error(e);
-      onError('Google sign-in failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={handleGoogle}
-      disabled={loading}
-      style={{
-        width: '100%',
-        padding: '0.85rem',
-        backgroundColor: '#fff',
-        color: '#1F4142',
-        fontWeight: 'bold',
-        border: '1.5px solid #1F4142',
-        borderRadius: 6,
-        cursor: loading ? 'not-allowed' : 'pointer',
-        fontSize: '1.05rem',
-        marginTop: '1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.7rem',
-        opacity: loading ? 0.7 : 1,
-      }}
-    >
-      <img src="/google.svg" alt="Google" style={{ width: 24, height: 24 }} />
-      {loading ? 'Please wait…' : 'Continue with Google'}
-    </button>
-  );
+function mapError(code?: string): string {
+  switch (code) {
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Incorrect password. Please try again.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Try again later.';
+    default:
+      return 'Something went wrong. Please try again.';
+  }
 }
 
-export default function LoginPage(): React.ReactElement {
-  const router = useRouter();
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const auth = getAuthClient();
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        persistSessionCookie(u).finally(() => window.location.replace('/intake'));
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await persistSessionCookie(user);
+        window.location.replace('/portal');
       } else {
-        clearSessionCookie().catch(() => {});
+        await clearSessionCookie().catch(() => {});
       }
     });
     return () => unsub();
-  }, [router]);
+  }, []);
 
-  function mapError(code?: string): string {
-    switch (code) {
-      case 'auth/user-not-found': return 'No account found with this email.';
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential': return 'Incorrect password. Please try again.';
-      case 'auth/invalid-email': return 'Please enter a valid email address.';
-      case 'auth/too-many-requests': return 'Too many attempts. Try again later.';
-      default: return 'Something went wrong. Please try again.';
-    }
-  }
-
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setBusy(true);
     setError('');
-    setLoading(true);
     try {
       const auth = getAuthClient();
       const { user } = await signInWithEmailAndPassword(auth, email.trim(), password);
 
       if (!user.emailVerified) {
-        const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '') || '';
+        const displayName = user.displayName || user.email?.split('@')[0] || '';
+        await clearSessionCookie().catch(() => {});
         void fetch('/api/send-verification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email || '', displayName }),
+          body: JSON.stringify({ email: user.email ?? '', displayName }),
         });
-        await clearSessionCookie();
-        router.replace('/verify-email/sent');
+        window.location.replace('/verify-email/sent');
         return;
       }
 
       await persistSessionCookie(user);
-      window.location.replace('/intake');
+      window.location.replace('/portal');
     } catch (err: any) {
       setError(mapError(err?.code));
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
   return (
-    <main
-      style={{
-        backgroundColor: '#DFD6C7',
-        minHeight: '100vh',
-        fontFamily: "'Playfair Display', serif",
-        padding: '2rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
-    >
-      <div style={{ marginBottom: '2rem' }}>
-        <Image src="/logo.png" alt="The Clear Path logo" width={100} height={100} priority />
+    <div className="mx-auto w-full max-w-md py-12">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-semibold text-neutral-900">Welcome back</h1>
+        <p className="text-sm text-neutral-600">Sign in to continue to your portal.</p>
       </div>
 
-      <h1 style={{ color: '#1F4142', fontSize: '2.1rem', marginBottom: '1rem', textAlign: 'center' }}>
-        Log In to Your Account
-      </h1>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <div>
+          <label htmlFor="email" className="text-sm font-medium text-neutral-700">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+          />
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium text-neutral-700">
+              Password
+            </label>
+            <Link href="/forgot-password" className="text-xs font-medium text-[#1F4142] hover:opacity-80">
+              Forgot?
+            </Link>
+          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+          />
+        </div>
 
-      <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 400 }}>
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="username"
-          style={inputStyle}
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          style={inputStyle}
-        />
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            backgroundColor: '#1F4142',
-            color: '#DFD6C7',
-            border: 'none',
-            borderRadius: 6,
-            fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            marginBottom: 10,
-            fontSize: '1.06rem',
-          }}
+          disabled={busy}
+          className="w-full rounded-full bg-[#1F4142] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
         >
-          {loading ? 'Logging In...' : 'Log In'}
+          {busy ? 'Signing in…' : 'Sign in'}
         </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', margin: '6px 0 10px 0' }}>
-          <div style={{ flex: 1, height: 1, background: '#ddd' }} />
-          <span style={{ margin: '0 14px', color: '#444', fontWeight: 700, fontSize: '1.08rem', letterSpacing: '0.5px' }}>
-            or
-          </span>
-          <div style={{ flex: 1, height: 1, background: '#ddd' }} />
-        </div>
-
-        <GoogleButton onError={setError} />
-
-        <div style={{ marginTop: '0.8rem', textAlign: 'right' }}>
-          <a href="/forgot-password" style={{ fontSize: 14, color: '#1F4142', textDecoration: 'underline' }}>
-            Forgot password?
-          </a>
-        </div>
-
-        {error && <p style={{ marginTop: '1rem', color: '#B00020', textAlign: 'center' }}>{error}</p>}
       </form>
 
-      <p style={{ marginTop: '2.2rem', color: '#1F4140' }}>
-        Don&apos;t have an account?{' '}
-        <Link href="/signup" style={{ color: '#1F4142', fontWeight: 'bold' }}>
-          Sign up
+      <GoogleSignInButton className="mt-6" />
+
+      <p className="mt-8 text-sm text-neutral-600">
+        New here?{' '}
+        <Link href="/signup" className="font-medium text-[#1F4142] underline">
+          Create an account
         </Link>
       </p>
-    </main>
+    </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.75rem',
-  marginBottom: '1rem',
-  borderRadius: 6,
-  border: '1px solid #ccc',
-  fontSize: '1rem',
-};

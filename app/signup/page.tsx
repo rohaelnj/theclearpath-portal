@@ -1,263 +1,143 @@
-"use client";
-export const dynamic = 'force-dynamic';
+'use client';
 
-import React, { useEffect, useState, type ChangeEvent } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-  getRedirectResult,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  signInWithPopup,
-  setPersistence,
-  browserLocalPersistence,
-  type UserCredential,
-} from "firebase/auth";
-import { getAuthClient } from "@/lib/firebase";
-import { persistSessionCookie } from "@/lib/session";
+import { useState } from 'react';
+import Link from 'next/link';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuthClient } from '@/lib/firebase';
+import { persistSessionCookie } from '@/lib/session';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 
-function errMsg(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  try { return JSON.stringify(e); } catch { return String(e); }
-}
+const MIN_PASSWORD = 8;
 
-export default function Signup(): React.ReactElement {
-  const router = useRouter();
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [name, setName] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [success, setSuccess] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [gLoading, setGLoading] = useState<boolean>(false);
+export default function SignupPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    // Ensure session persists across Google redirect
-    const auth = getAuthClient();
-    setPersistence(auth, browserLocalPersistence).catch(() => {});
-
-    // Only send verified or Google to dashboard
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) return;
-      const isVerified = u.emailVerified || u.providerData.some((p) => p.providerId === 'google.com');
-      if (isVerified) {
-        persistSessionCookie(u).finally(() => {
-          window.location.replace('/portal');
-        });
-      }
-    });
-
-    // Complete Google redirect flow
-    getRedirectResult(auth)
-      .then((res: UserCredential | null) => {
-        if (res?.user) {
-          persistSessionCookie(res.user).finally(() => {
-            window.location.replace('/portal');
-          });
-        }
-      })
-      .catch(() => {});
-
-    return () => unsub();
-  }, [router]);
-
-  const handleGoogle = async (): Promise<void> => {
-    try {
-      setError("");
-      setGLoading(true);
-
-      const auth = getAuthClient();
-      await setPersistence(auth, browserLocalPersistence);
-
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-
-      try {
-        const cred = await signInWithPopup(auth, provider);
-        await persistSessionCookie(cred.user);
-        window.location.replace('/portal');
-      } catch (err: any) {
-        const code = err?.code ?? '';
-        if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
-          await signInWithRedirect(auth, provider);
-          return;
-        }
-        throw err;
-      }
-    } catch (e: unknown) {
-      setError('Google sign-in failed: ' + errMsg(e));
-      setGLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (password.length < 8) {
-      setError('Your password needs to be at least 8 characters long.');
+    setError('');
+
+    if (password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters.`);
       return;
     }
-    setLoading(true);
-    setError("");
-    setSuccess("");
+
+    setBusy(true);
     try {
       const auth = getAuthClient();
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const trimmedName = name.trim();
-      if (trimmedName) await updateProfile(user, { displayName: trimmedName });
+      if (trimmedName) {
+        await updateProfile(user, { displayName: trimmedName });
+      }
 
-      // Send verification email via API
-      await fetch('/api/send-verification', {
+      await persistSessionCookie(user);
+
+      void fetch('/api/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: user.email || '',
-          displayName: trimmedName || user.email?.split('@')[0] || ''
+          email: user.email ?? '',
+          displayName: trimmedName || user.email?.split('@')[0] || '',
         }),
-      });
+      }).catch(() => {});
 
-      setSuccess('Account created! Check your email to verify.');
-      setTimeout(() => router.push('/verify-email/sent'), 1200);
-    } catch (e: unknown) {
-      const msg = errMsg(e);
-      if (msg.includes('auth/email-already-in-use')) {
-        setError('This email is already registered. Please sign in instead.');
-        setTimeout(() => router.push('/login'), 1200);
-      } else if (msg.includes('auth/invalid-email')) {
+      window.location.replace('/portal');
+    } catch (err: any) {
+      const message = err?.code as string | undefined;
+      if (message === 'auth/email-already-in-use') {
+        setError('This email is already registered. Try signing in instead.');
+      } else if (message === 'auth/invalid-email') {
         setError('Please enter a valid email address.');
-      } else if (msg.includes('auth/weak-password')) {
+      } else if (message === 'auth/weak-password') {
         setError('Password must be at least 8 characters.');
       } else {
-        setError('Signup failed: ' + msg);
+        setError('Signup failed. Please try again.');
       }
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
+  }
 
   return (
-    <main
-      style={{
-        backgroundColor: '#DFD6C7',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: "'Playfair Display', serif",
-        padding: '2rem',
-      }}
-    >
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <Image src="/logo.png" alt="The Clear Path Logo" width={180} height={180} />
-        <h1 style={{ color: '#1F4142', marginTop: '1rem', fontSize: '3rem', fontWeight: 'bold' }}>
-          Start Your Journey
-        </h1>
-        <p style={{ color: '#1F4140', marginTop: '0.75rem', fontSize: '1.25rem', fontWeight: 500 }}>
-          This is your first step to becoming the best version of yourself.
+    <div className="mx-auto w-full max-w-xl py-12">
+      <div className="space-y-3 text-center md:text-left">
+        <h1 className="text-4xl font-semibold text-neutral-900">Start your clear path</h1>
+        <p className="text-sm text-neutral-600">
+          A few quick details and you’ll have a private space to begin therapy on your schedule.
         </p>
       </div>
 
-      <form onSubmit={handleSignup}
-        style={{
-          backgroundColor: '#DED4C8',
-          padding: '2.25rem',
-          borderRadius: '16px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-          width: '100%',
-          maxWidth: '420px',
-        }}
-      >
-        {success && <p style={{ color: '#1F4142', marginBottom: '1rem', fontWeight: 'bold' }}>{success}</p>}
-        {error && <p style={{ color: '#B00020', marginBottom: '1rem', fontWeight: 500 }}>{error}</p>}
-
-        <label style={{ display: 'block', marginBottom: '1rem', color: '#1F4140', fontWeight: 'bold' }}>
-          Full name (optional)
+      <form onSubmit={handleSubmit} className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <label htmlFor="name" className="text-sm font-medium text-neutral-700">
+            Full name
+          </label>
           <input
-            type="text"
+            id="name"
+            name="name"
             value={name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            placeholder="How should we address you?"
             autoComplete="name"
-            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
           />
-        </label>
+        </div>
 
-        <label style={{ display: 'block', marginBottom: '1rem', color: '#1F4140', fontWeight: 'bold' }}>
-          Email
+        <div className="md:col-span-2">
+          <label htmlFor="email" className="text-sm font-medium text-neutral-700">
+            Email
+          </label>
           <input
+            id="email"
+            name="email"
             type="email"
-            value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-            required
             autoComplete="email"
-            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
-          />
-        </label>
-
-        <label style={{ display: 'block', marginBottom: '1.25rem', color: '#1F4140', fontWeight: 'bold' }}>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
-            autoComplete="new-password"
-            style={{ width: '100%', padding: '0.75rem', marginTop: '0.35rem', borderRadius: 6, border: '1px solid #aaa', fontSize: '1rem' }}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
           />
-          <small style={{ display: 'block', color: '#666', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-            Must be at least 8 characters.
-          </small>
-        </label>
+        </div>
+
+        <div className="md:col-span-2">
+          <label htmlFor="password" className="text-sm font-medium text-neutral-700">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+          />
+        </div>
+
+        {error && <p className="md:col-span-2 text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.85rem',
-            backgroundColor: loading ? '#999' : '#1F4142',
-            color: '#DFD6C7',
-            fontWeight: 'bold',
-            border: 'none',
-            borderRadius: 6,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '1.05rem',
-            letterSpacing: '0.5px',
-          }}
+          disabled={busy}
+          className="md:col-span-2 rounded-full bg-[#1F4142] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
         >
-          {loading ? 'Creating Account...' : 'Create My Account'}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={gLoading}
-          style={{
-            width: '100%',
-            marginTop: '12px',
-            padding: '0.85rem',
-            backgroundColor: gLoading ? '#999' : '#FFFFFF',
-            color: '#1F4142',
-            fontWeight: 700,
-            border: '1px solid #1F4142',
-            borderRadius: 6,
-            cursor: gLoading ? 'not-allowed' : 'pointer',
-            fontSize: '1.05rem',
-          }}
-        >
-          {gLoading ? 'Please wait…' : 'Continue with Google'}
+          {busy ? 'Creating account…' : 'Create account'}
         </button>
       </form>
 
-      <p style={{ marginTop: '2rem', color: '#1F4140', textAlign: 'center' }}>
+      <GoogleSignInButton className="mt-6" />
+
+      <p className="mt-8 text-sm text-neutral-600">
         Already have an account?{' '}
-        <Link href="/login" style={{ color: '#1F4142', fontWeight: 'bold' }}>
-          Log in
+        <Link href="/login" className="font-medium text-[#1F4142] underline">
+          Sign in
         </Link>
       </p>
-    </main>
+    </div>
   );
 }
