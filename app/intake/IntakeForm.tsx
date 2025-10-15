@@ -222,6 +222,7 @@ function renderField(
   value: string,
   onChange: (key: QuestionKey, value: string) => void,
 ): ReactElement {
+  const isRequired = REQUIRED_KEYS.includes(question.key as Key);
   const base =
     'w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-800 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
 
@@ -231,7 +232,7 @@ function renderField(
         <select
           id={question.key}
           name={question.key}
-          required
+          required={isRequired}
           value={value}
           onChange={(event) => onChange(question.key, event.target.value)}
           className={base}
@@ -251,7 +252,7 @@ function renderField(
         <textarea
           id={question.key}
           name={question.key}
-          required
+          required={isRequired}
           rows={4}
           value={value}
           placeholder={question.placeholder}
@@ -264,7 +265,7 @@ function renderField(
         <input
           id={question.key}
           name={question.key}
-          required
+          required={isRequired}
           type="date"
           value={value}
           onChange={(event) => onChange(question.key, event.target.value)}
@@ -274,20 +275,24 @@ function renderField(
     case 'radio':
       return (
         <div className="flex items-center gap-4">
-          {question.options?.map((option) => (
-            <label key={option.value} className="inline-flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="radio"
-                name={question.key}
-                value={option.value}
-                checked={value === option.value}
-                onChange={(event) => onChange(question.key, event.target.value)}
-                className="h-4 w-4 border-neutral-300 text-primary focus:ring-primary/50"
-                required
-              />
-              {option.label}
-            </label>
-          ))}
+          {question.options?.map((option, index) => {
+            const inputId = `${question.key}-${option.value}`;
+            return (
+              <label key={option.value} htmlFor={inputId} className="inline-flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  id={inputId}
+                  type="radio"
+                  name={question.key}
+                  value={option.value}
+                  checked={value === option.value}
+                  onChange={(event) => onChange(question.key, event.target.value)}
+                  className="h-4 w-4 border-neutral-300 text-primary focus:ring-primary/50"
+                  required={isRequired && index === 0}
+                />
+                {option.label}
+              </label>
+            );
+          })}
         </div>
       );
     case 'text':
@@ -296,7 +301,7 @@ function renderField(
         <input
           id={question.key}
           name={question.key}
-          required
+          required={isRequired}
           type="text"
           value={value}
           placeholder={question.placeholder}
