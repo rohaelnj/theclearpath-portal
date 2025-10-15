@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type QuestionKey =
@@ -113,17 +113,11 @@ function ga(event: string, params: Record<string, unknown>) {
 export default function IntakeForm(): ReactElement {
   const router = useRouter();
   const [answers, setAnswers] = useState<Partial<Answers>>({});
-  const [saving, setSaving] = useState<Record<QuestionKey, boolean>>({} as Record<QuestionKey, boolean>);
-  const [saved, setSaved] = useState<Record<QuestionKey, boolean>>({} as Record<QuestionKey, boolean>);
-  const completionLogged = useRef(false);
-
-  const complete = useMemo(() => {
-    return REQUIRED_KEYS.every((key) => {
-      const value = (answers as Record<Key, unknown>)[key];
-      if (value === undefined || value === null) return false;
-      return String(value).trim() !== '';
-    });
-  }, [answers]);
+const [saving, setSaving] = useState<Record<QuestionKey, boolean>>({} as Record<QuestionKey, boolean>);
+const [saved, setSaved] = useState<Record<QuestionKey, boolean>>({} as Record<QuestionKey, boolean>);
+const completionLogged = useRef(false);
+const formRef = useRef<HTMLFormElement>(null);
+const [complete, setComplete] = useState(false);
 
   const handleSave = useCallback(async (key: QuestionKey, value: string) => {
     setSaving((prev) => ({ ...prev, [key]: true }));
@@ -181,8 +175,31 @@ export default function IntakeForm(): ReactElement {
     window.localStorage.setItem('surveyAnswers', JSON.stringify(answers));
   }, [answers]);
 
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const evaluate = () => setComplete(form.checkValidity());
+    evaluate();
+    form.addEventListener('input', evaluate);
+    form.addEventListener('change', evaluate);
+    return () => {
+      form.removeEventListener('input', evaluate);
+      form.removeEventListener('change', evaluate);
+    };
+  }, []);
+
+  useEffect(() => {
+    setComplete(
+      REQUIRED_KEYS.every((key) => {
+        const value = (answers as Record<Key, string | undefined>)[key];
+        return typeof value === 'string' && value.trim() !== '';
+      }),
+    );
+  }, [answers]);
+
+
   return (
-    <form className="space-y-8" aria-describedby="intake-help">
+    <form ref={formRef} className="space-y-8" aria-describedby="intake-help">
       <p id="intake-help" className="text-sm text-neutral-500">
         All questions are required. Your responses save automatically.
       </p>

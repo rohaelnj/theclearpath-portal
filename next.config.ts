@@ -1,8 +1,33 @@
 // next.config.ts  (full file)
 import type { NextConfig } from 'next';
 
-const CSP =
-  "default-src 'self' https: data: blob:; base-uri 'self'; object-src 'none'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; font-src 'self' https: data:; connect-src 'self' https: wss: https://www.google-analytics.com https://*.googleapis.com https://*.googleusercontent.com https://*.firebaseio.com https://firestore.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://www.googletagmanager.com; script-src 'self' https: 'unsafe-inline' https://www.googletagmanager.com https://www.gstatic.com https://accounts.google.com https://apis.google.com; style-src 'self' https: 'unsafe-inline'; frame-ancestors 'self'; frame-src 'self' https: https://accounts.google.com https://*.google.com https://*.firebaseapp.com;";
+const scriptSrc = [
+  "'self'",
+  'https:',
+  "'unsafe-inline'",
+  'https://www.googletagmanager.com',
+  'https://www.gstatic.com',
+  'https://accounts.google.com',
+  'https://apis.google.com',
+];
+
+if (process.env.NODE_ENV !== 'production') {
+  scriptSrc.push("'unsafe-eval'");
+}
+
+const CSP = [
+  "default-src 'self' https: data: blob:;",
+  "base-uri 'self';",
+  "object-src 'none';",
+  "img-src 'self' https: data: blob:;",
+  "media-src 'self' https: blob:;",
+  "font-src 'self' https: data:;",
+  "connect-src 'self' https: wss: https://www.google-analytics.com https://*.googleapis.com https://*.googleusercontent.com https://*.firebaseio.com https://firestore.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://www.googletagmanager.com;",
+  `script-src ${scriptSrc.join(' ')};`,
+  "style-src 'self' https: 'unsafe-inline';",
+  "frame-ancestors 'self';",
+  "frame-src 'self' https: https://accounts.google.com https://*.google.com https://*.firebaseapp.com;",
+].join(' ');
 
 const nextConfig: NextConfig = {
   typedRoutes: true,

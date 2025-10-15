@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (/\.[^/]+$/.test(normalizedPath)) {
+    return NextResponse.next();
+  }
+
   const token = parseAuthToken(request.cookies.get('auth_jwt')?.value);
 
   if (PUBLIC_PATHS.has(normalizedPath)) {
