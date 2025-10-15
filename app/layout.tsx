@@ -44,10 +44,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const gaId = process.env.NEXT_PUBLIC_GA4_ID;
 
   return (
-    <html lang="en">
-      <body className="bg-[#EDE6DC] text-[#1F4142] antialiased">
+    <html lang="en" className="bg-surface text-[17px] md:text-[18px]">
+      <body className="bg-surface font-sans text-neutral-900 antialiased">
         <Header />
-        <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">{children}</main>
+        <main id="main" className="mx-auto min-h-[70vh] w-full max-w-6xl px-4 py-8 md:py-12">
+          {children}
+        </main>
         <Footer />
         {gaId ? (
           <>

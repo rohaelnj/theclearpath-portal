@@ -1,30 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSessionLite } from './src/lib/auth-edge';
 
-const PUBLIC_PATHS = new Set([
-  '/',
-  '/login',
-  '/signup',
-  '/verify-email',
-  '/verify-email/sent',
-  '/legal/privacy-policy',
-  '/legal/refund-and-cancellation-policy',
-  '/privacy-policy',
-]);
+const PUBLIC_PATHS = new Set(['/', '/intake', '/plans', '/login']);
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|robots.txt|sitemap.xml|api/health|api/ping).*)'],
+  matcher: ['/((?!_next|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)'],
 };
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/_next') || pathname.startsWith('/static')) {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api')) {
     return NextResponse.next();
   }
 
@@ -32,31 +18,50 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith('/legal/')) {
-    return NextResponse.next();
-  }
+  if (pathname.startsWith('/patient') || pathname.startsWith('/therapist') || pathname.startsWith('/admin')) {
+    const token = parseAuthToken(request.cookies.get('auth_jwt')?.value);
 
-  const user = await getSessionLite(req);
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
 
-  if (!user) {
-    const url = new URL('/login', req.nextUrl);
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
-  }
+    if (pathname.startsWith('/patient')) {
+      if (!token.surveyCompleted) {
+        return NextResponse.redirect(new URL('/intake', request.url));
+      }
+      if (!token.planSelected) {
+        return NextResponse.redirect(new URL('/plans', request.url));
+      }
+      if (token.role !== 'patient') {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    }
 
-  const { surveyCompleted = false, planSelected = false, subscriptionActive = false } = user;
+    if (pathname.startsWith('/therapist') && token.role !== 'therapist') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
 
-  if (!surveyCompleted && pathname !== '/intake') {
-    return NextResponse.redirect(new URL('/intake', req.nextUrl));
-  }
-
-  if (surveyCompleted && !planSelected && pathname !== '/plans') {
-    return NextResponse.redirect(new URL('/plans', req.nextUrl));
-  }
-
-  if (surveyCompleted && planSelected && !subscriptionActive && !pathname.startsWith('/success') && pathname !== '/plans') {
-    return NextResponse.redirect(new URL('/plans', req.nextUrl));
+    if (pathname.startsWith('/admin') && token.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();
+}
+
+type AuthToken = {
+  role?: string;
+  surveyCompleted?: boolean;
+  planSelected?: boolean;
+} | null;
+
+function parseAuthToken(raw?: string): AuthToken {
+  if (!raw) return null;
+  try {
+    const value = raw.trim();
+    const json = value.startsWith('{') ? value : atob(value);
+    return JSON.parse(json) as AuthToken;
+  } catch {
+    return null;
+  }
 }

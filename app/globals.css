@@ -8,7 +8,7 @@
   }
 
   ::selection {
-    background: #1f4142;
-    color: #ffffff;
+    background-color: theme('colors.primary');
+    color: theme('colors.white');
   }
 }

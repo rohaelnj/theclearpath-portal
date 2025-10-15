@@ -1,24 +1,30 @@
-'use client';
-
+import Image from 'next/image';
 import Link from 'next/link';
-import Logo from './Logo';
+import { cookies } from 'next/headers';
 
-export default function Header() {
+export default async function Header() {
+  const cookieStore = await cookies();
+  const authed = Boolean(cookieStore.get('auth_jwt')?.value);
+
   return (
-    <header className="sticky top-0 z-40 bg-[#EDE6DC]/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Logo className="h-7 w-auto" />
+    <header className="sticky top-0 z-40 w-full border-b border-black/5 bg-surface">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="/logo.png" alt="Clear Path" width={200} height={55} className="h-14 w-auto" priority />
+          <span className="sr-only">Clear Path Home</span>
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
-          <Link href="/plans" className="hidden text-[#1F4142] transition hover:opacity-80 md:inline">
+        <nav className="flex items-center gap-8 text-base">
+          <Link href="/intake" className="text-primary hover:opacity-80">
+            Get started
+          </Link>
+          <Link href="/plans" className="text-primary hover:opacity-80">
             Plans
           </Link>
-          <Link href="/login" className="text-[#1F4142] transition hover:opacity-80">
-            Log in
-          </Link>
-          <Link href="/signup" className="rounded-full bg-[#1F4142] px-4 py-2 font-medium text-white transition hover:opacity-90">
-            Get started
+          <Link
+            href={authed ? '/patient/sessions' : '/login'}
+            className="rounded-full bg-primary px-5 py-2 font-semibold text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            {authed ? 'Portal' : 'Login'}
           </Link>
         </nav>
       </div>

@@ -26,7 +26,7 @@ export default function Portal() {
           <p className="mt-2 text-neutral-700">No upcoming sessions.</p>
           <Link
             href="/plans"
-            className="mt-4 inline-block rounded-full bg-[#1F4142] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+            className="mt-4 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary/90"
           >
             Book a session
           </Link>

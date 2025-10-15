@@ -52,7 +52,7 @@ export default function GoogleSignInButton({ className = '' }: Props): React.Rea
       type="button"
       onClick={handleGoogle}
       disabled={loading}
-      className={`flex w-full items-center justify-center gap-3 rounded-full border border-[#1F4142] px-5 py-3 text-sm font-medium text-[#1F4142] transition hover:bg-[#1F4142]/5 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`flex w-full items-center justify-center gap-3 rounded-full border border-primary px-5 py-3 text-sm font-medium text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <img src="/google.svg" alt="Google" className="h-6 w-6" />
       {loading ? 'Please wait…' : 'Continue with Google'}

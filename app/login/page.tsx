@@ -91,7 +91,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <div>
@@ -99,7 +99,7 @@ export default function LoginPage() {
             <label htmlFor="password" className="text-sm font-medium text-neutral-700">
               Password
             </label>
-            <Link href="/forgot-password" className="text-xs font-medium text-[#1F4142] hover:opacity-80">
+            <Link href="/forgot-password" className="text-xs font-medium text-primary hover:opacity-80">
               Forgot?
             </Link>
           </div>
@@ -111,7 +111,7 @@ export default function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-[#1F4142] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
+          className="w-full rounded-full bg-primary px-5 py-3 font-medium text-white transition hover:bg-primary/90 disabled:opacity-60"
         >
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
@@ -130,7 +130,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-sm text-neutral-600">
         New here?{' '}
-        <Link href="/signup" className="font-medium text-[#1F4142] underline">
+        <Link href="/signup" className="font-medium text-primary underline">
           Create an account
         </Link>
       </p>

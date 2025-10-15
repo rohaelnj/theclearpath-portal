@@ -19,70 +19,43 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main
-      style={{
-        backgroundColor: "#DFD6C7",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'Playfair Display', serif",
-        padding: "2rem",
-        textAlign: "center",
-      }}
-    >
-      <style>{`
-        input {
-          padding: 10px;
-          font-size: 16px;
-          margin-top: 1rem;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-          width: 100%;
-          max-width: 300px;
-        }
-        button {
-          margin-top: 1.5rem;
-          padding: 10px 20px;
-          background-color: #1F4142;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-weight: bold;
-          cursor: pointer;
-        }
-      `}</style>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-stone-100 px-6 py-12 text-center">
+      <section className="w-full max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-lg">
+        <div className="space-y-3">
+          <h1 className="text-3xl font-semibold text-primary">Forgot your password?</h1>
+          <p className="text-sm text-neutral-600">
+            Enter the email address linked to your Clear Path account and we&apos;ll send a reset link.
+          </p>
+        </div>
 
-      <h1 style={{ color: "#1F4142" }}>Forgot Your Password?</h1>
-      <p style={{ color: "#1F4140", marginTop: "0.5rem" }}>
-        Enter your email and we’ll send you a reset link.
-      </p>
-
-      {status === "sent" && (
-        <p style={{ color: "#1F4140", marginTop: "2rem" }}>
-          ✅ Reset link sent! Check your inbox.
-        </p>
-      )}
-
-      {status !== "sent" && (
-        <form onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <br />
-          <button type="submit">Send Reset Link</button>
-          {status === "error" && (
-            <p style={{ color: "#b00020", marginTop: "1rem" }}>
-              ❌ Error sending reset link. Try again.
-            </p>
-          )}
-        </form>
-      )}
+        {status === "sent" ? (
+          <p className="text-sm font-medium text-primary">✅ Reset link sent! Check your inbox.</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 text-left">
+            <label htmlFor="email" className="text-sm font-medium text-primary">
+              Email address
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="name@email.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-800 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <button
+              type="submit"
+              className="flex w-full items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Send reset link
+            </button>
+            {status === "error" && (
+              <p className="text-sm font-medium text-red-600">❌ Error sending reset link. Try again.</p>
+            )}
+          </form>
+        )}
+      </section>
     </main>
   );
 }

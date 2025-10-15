@@ -21,11 +21,13 @@ export default function HealthPage() {
     !!process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 12 }}>Health Check</h1>
+    <div className="space-y-4 bg-white p-6 font-sans text-sm text-neutral-700 shadow-sm md:rounded-2xl">
+      <h1 className="text-xl font-semibold text-neutral-900">Health check</h1>
 
-      <ul style={{ lineHeight: 1.8 }}>
-        <li>Client env present (public) — <strong>{clientOk ? 'OK ✅' : 'Missing ❌'}</strong></li>
+      <ul className="space-y-2 leading-relaxed">
+        <li>
+          Client env present (public) — <strong>{clientOk ? 'OK ✅' : 'Missing ❌'}</strong>
+        </li>
         <li>
           Admin init (server) —{' '}
           <strong>
@@ -34,7 +36,7 @@ export default function HealthPage() {
         </li>
       </ul>
 
-      <p style={{ marginTop: 16, color: '#666' }}>
+      <p className="text-neutral-500">
         This checks only <code>NEXT_PUBLIC_*</code> vars on the client and that the Admin SDK initializes on the server.
       </p>
     </div>

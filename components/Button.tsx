@@ -5,19 +5,11 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactElement, ReactNod
 const baseClasses =
   'relative inline-flex min-w-[152px] items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60';
 
-const BRAND_GREEN = '#006F6A';
-const BRAND_GREEN_HOVER = '#004E4A';
-const BRAND_SHADOW_CLASS = 'shadow-[0_8px_30px_rgba(0,111,106,0.45)]';
-
 const variantClasses = {
-  solid:
-    `bg-[${BRAND_GREEN}] text-white hover:bg-[${BRAND_GREEN_HOVER}] focus-visible:ring-[${BRAND_GREEN}] ${BRAND_SHADOW_CLASS}`,
-  outline:
-    `border border-[${BRAND_GREEN}] text-[${BRAND_GREEN}] hover:bg-[rgba(0,111,106,0.06)] focus-visible:ring-[${BRAND_GREEN}]`,
-  ghost:
-    `text-[${BRAND_GREEN}] hover:bg-[rgba(0,111,106,0.06)] focus-visible:ring-[${BRAND_GREEN}]`,
-  cta:
-    `bg-[${BRAND_GREEN}] text-white hover:bg-[${BRAND_GREEN_HOVER}] focus-visible:ring-[${BRAND_GREEN}] ${BRAND_SHADOW_CLASS}`,
+  solid: 'bg-primary text-white hover:opacity-90 focus-visible:ring-primary',
+  outline: 'border border-primary text-primary hover:bg-primary/5 focus-visible:ring-primary',
+  ghost: 'text-primary hover:bg-primary/5 focus-visible:ring-primary',
+  cta: 'bg-primary text-white hover:opacity-90 focus-visible:ring-primary shadow-[0_8px_30px_rgba(31,65,66,0.35)]',
 } as const;
 
 type Variant = keyof typeof variantClasses;
@@ -48,14 +40,8 @@ export default function Button({
   const classes = cx(baseClasses, variantClasses[variant], className);
   const halo =
     variant === 'cta' ? (
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-      >
-        <span
-          className="absolute h-24 w-24 rounded-full blur-2xl"
-          style={{ background: BRAND_GREEN, opacity: 0.6 }}
-        />
+      <span aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span className="absolute h-24 w-24 rounded-full bg-primary opacity-60 blur-2xl" />
       </span>
     ) : null;
 
