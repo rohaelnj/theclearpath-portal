@@ -14,10 +14,16 @@ export default async function Header() {
           <span className="sr-only">Clear Path Home</span>
         </Link>
         <nav className="flex items-center gap-8 text-base">
-          <Link href="/intake" className="text-primary hover:opacity-80">
+          <Link
+            href="/intake"
+            className="text-primary transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
             Get started
           </Link>
-          <Link href="/plans" className="text-primary hover:opacity-80">
+          <Link
+            href="/plans"
+            className="text-primary transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
             Plans
           </Link>
           <Link

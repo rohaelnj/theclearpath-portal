@@ -36,32 +36,30 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="space-y-16">
-      <section className="w-full">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-16 md:grid-cols-2">
-          <div className="max-w-xl">
-            <p className="mb-4 text-sm tracking-widest text-black/60">YOUR PATH TO CALM</p>
-            <h1 className="mb-6 text-5xl font-bold text-black">Find clarity with online therapy in Dubai</h1>
-            <p className="mb-8 text-lg text-black/70">
-              Clear Path connects you with licensed UAE therapists for private, flexible video sessions.
-            </p>
-            <a
-              href="/intake"
-              className="inline-block rounded-full bg-primary px-6 py-3 font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Begin your intake
-            </a>
-          </div>
-          <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-xl">
-            <Image
-              src="/hero.jpg"
-              alt="Clear Path hero"
-              width={1600}
-              height={900}
-              className="h-full w-full object-cover"
-              priority
-            />
-          </div>
+    <main className="mx-auto max-w-6xl space-y-16 px-6 py-16">
+      <section className="grid items-center gap-12 md:grid-cols-2">
+        <div className="max-w-xl space-y-6">
+          <p className="text-sm tracking-widest text-black/60">YOUR PATH TO CALM</p>
+          <h1 className="text-5xl font-bold text-black">Find clarity with online therapy in Dubai</h1>
+          <p className="text-lg text-black/70">
+            Clear Path connects you with licensed UAE therapists for private, flexible video sessions.
+          </p>
+          <Link
+            href="/intake"
+            className="inline-flex items-center rounded-full bg-primary px-6 py-3 font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Begin your intake
+          </Link>
+        </div>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-3xl shadow-xl">
+          <Image
+            src="/hero.jpg"
+            alt="Clear Path hero"
+            width={1600}
+            height={900}
+            className="h-full w-full object-cover"
+            priority
+          />
         </div>
       </section>
 
@@ -197,6 +195,6 @@ export default function HomePage() {
           }),
         }}
       />
-    </div>
+    </main>
   );
 }
