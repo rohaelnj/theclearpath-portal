@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 
 export default async function Header() {
-  const cookieStore = await cookies();
-  const authed = Boolean(cookieStore.get('auth_jwt')?.value);
+  const jar = await cookies();
+  const authed = Boolean(jar.get('auth_jwt'));
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-black/5 bg-surface">
