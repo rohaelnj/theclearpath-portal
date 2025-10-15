@@ -45,6 +45,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en" className="bg-surface text-[17px] md:text-[18px]">
+      <head suppressHydrationWarning>
+        <meta
+          name="description"
+          content="Licensed UAE therapists. Confidential video sessions. Flexible scheduling with Clear Path."
+        />
+      </head>
       <body className="bg-surface font-sans text-neutral-900 antialiased">
         <a
           href="#main"

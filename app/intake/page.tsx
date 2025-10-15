@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import type { ReactElement } from 'react';
 import IntakeForm from './IntakeForm';
+
+export const metadata: Metadata = {
+  title: 'Survey | Clear Path Online Therapy',
+  description: 'Complete nine quick questions so we can match you with a Clear Path therapist and tailored plan.',
+};
 
 export default function IntakePage(): ReactElement {
   return (

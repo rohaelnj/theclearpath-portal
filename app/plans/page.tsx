@@ -3,9 +3,8 @@ import type { ReactElement } from 'react';
 import PlansClient from './PlansClient';
 
 export const metadata: Metadata = {
-  title: 'Recommended Plan — The Clear Path',
-  description:
-    'Review your personalised therapy plan recommendation based on your intake responses and continue to checkout when ready.',
+  title: 'Recommended Plan | Clear Path Online Therapy',
+  description: 'Review your personalised Clear Path therapy recommendation and see why it matches your goals before continuing.',
 };
 
 export default function PlansPage(): ReactElement {
