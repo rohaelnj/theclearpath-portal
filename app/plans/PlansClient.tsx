@@ -38,7 +38,7 @@ export default function PlansClient(): ReactElement {
   return (
     <div>
       <div className="space-y-4 text-center">
-        <p className="text-sm uppercase tracking-wide text-neutral-500">Your recommended plan</p>
+        <p className="text-sm uppercase tracking-wide text-neutral-700">Your recommended plan</p>
         <h1 className="text-3xl font-semibold text-neutral-900">{plan.name}</h1>
         <p className="text-neutral-600">
           Based on your intake responses, this plan offers the structure and support that best aligns with your needs.
@@ -54,9 +54,9 @@ export default function PlansClient(): ReactElement {
             <p className="text-neutral-600">{rationale}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm uppercase tracking-wide text-neutral-500">Estimated investment</p>
+            <p className="text-sm uppercase tracking-wide text-neutral-700">Estimated investment</p>
             <p className="text-3xl font-semibold text-neutral-900">AED —</p>
-            <p className="text-sm text-neutral-500">Final pricing confirmed at checkout.</p>
+            <p className="text-sm text-neutral-700">Final pricing confirmed at checkout.</p>
           </div>
         </div>
 
@@ -77,7 +77,10 @@ export default function PlansClient(): ReactElement {
           >
             Continue to checkout
           </button>
-          <a href="/patient/sessions" className="text-sm font-medium text-primary hover:underline">
+          <a
+            href="/patient/sessions"
+            className="text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
             Already subscribed? Go to your Portal
           </a>
         </div>

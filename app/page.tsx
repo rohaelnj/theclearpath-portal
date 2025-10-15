@@ -3,40 +3,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Clear Path — Online Therapy in Dubai & UAE',
-  description:
-    'Confidential, convenient online therapy in Dubai and across the UAE. Licensed therapists provide tailored support for anxiety, depression, couples counseling, and more.',
-  alternates: {
-    canonical: 'https://portal.theclearpath.ae/',
-  },
-  openGraph: {
-    title: 'Clear Path — Online Therapy in Dubai & UAE',
-    description:
-      'Confidential, convenient counseling from licensed UAE therapists. Begin your Clear Path intake to receive a personalized therapy plan.',
-    url: 'https://portal.theclearpath.ae/',
-    siteName: 'The Clear Path',
-    type: 'website',
-    images: [
-      {
-        url: '/og.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Clear Path — Online Therapy in Dubai & UAE',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Clear Path — Online Therapy in Dubai & UAE',
-    description:
-      'Start your intake to get matched with a licensed therapist in Dubai. Confidential, flexible online therapy tailored to your goals.',
-    images: ['/og.jpg'],
-  },
+  title: 'Online Therapy in Dubai | Clear Path',
+  description: 'Licensed UAE therapists. Confidential video sessions. Flexible scheduling.',
+  alternates: { canonical: 'https://portal.theclearpath.ae/' },
+  openGraph: { images: [{ url: '/og.jpg', width: 1200, height: 630 }] },
+  twitter: { card: 'summary_large_image', images: ['/og.jpg'] },
 };
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-6xl space-y-16 px-6 py-16">
+    <div className="mx-auto max-w-6xl space-y-16 px-6 py-16">
       <section className="grid items-center gap-12 md:grid-cols-2">
         <div className="max-w-xl space-y-6">
           <p className="text-sm tracking-widest text-black/60">YOUR PATH TO CALM</p>
@@ -66,27 +42,27 @@ export default function HomePage() {
       <section className="space-y-8">
         <h2 className="text-3xl font-semibold tracking-tight">Why people choose Clear Path</h2>
         <ul className="grid gap-6 md:grid-cols-2">
-          <li className="rounded-2xl bg-surface2/40 p-6 shadow transition hover:-translate-y-1 hover:shadow-md">
+          <li className="rounded-2xl bg-[color:oklch(85%_0.03_70/0.6)] p-6 shadow transition hover:-translate-y-1 hover:shadow-md md:bg-surface2/50">
             <h3 className="text-xl font-semibold text-neutral-900">Personalized guidance</h3>
             <p className="mt-3 text-neutral-600">
               Your intake survey helps us recommend the right therapist and plan, tailored to your goals and preferences.
             </p>
           </li>
-          <li className="rounded-2xl bg-surface2/40 p-6 shadow transition hover:-translate-y-1 hover:shadow-md">
+          <li className="rounded-2xl bg-[color:oklch(85%_0.03_70/0.6)] p-6 shadow transition hover:-translate-y-1 hover:shadow-md md:bg-surface2/50">
             <h3 className="text-xl font-semibold text-neutral-900">Confidential by design</h3>
             <p className="mt-3 text-neutral-600">
               We prioritise discretion at every step, with secure video sessions and private portal access for clients
               and therapists.
             </p>
           </li>
-          <li className="rounded-2xl bg-surface2/40 p-6 shadow transition hover:-translate-y-1 hover:shadow-md">
+          <li className="rounded-2xl bg-[color:oklch(85%_0.03_70/0.6)] p-6 shadow transition hover:-translate-y-1 hover:shadow-md md:bg-surface2/50">
             <h3 className="text-xl font-semibold text-neutral-900">Specialists across modalities</h3>
             <p className="mt-3 text-neutral-600">
               Access clinicians experienced in CBT, couples therapy, child &amp; teen support, trauma, and more—available
               in English, Arabic, and additional languages.
             </p>
           </li>
-          <li className="rounded-2xl bg-surface2/40 p-6 shadow transition hover:-translate-y-1 hover:shadow-md">
+          <li className="rounded-2xl bg-[color:oklch(85%_0.03_70/0.6)] p-6 shadow transition hover:-translate-y-1 hover:shadow-md md:bg-surface2/50">
             <h3 className="text-xl font-semibold text-neutral-900">Built for the GCC lifestyle</h3>
             <p className="mt-3 text-neutral-600">
               Evening and weekend sessions fit busy schedules in Dubai and across the GCC, with pricing aligned to the
@@ -165,6 +141,35 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Clear Path',
+            url: 'https://portal.theclearpath.ae/',
+            logo: 'https://portal.theclearpath.ae/logo.png',
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'LocalBusiness',
+            name: 'Clear Path',
+            url: 'https://portal.theclearpath.ae/',
+            image: 'https://portal.theclearpath.ae/og.jpg',
+            address: {
+              '@type': 'PostalAddress',
+              addressCountry: 'AE',
+              addressLocality: 'Dubai',
+            },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
             '@type': 'FAQPage',
             mainEntity: [
               {
@@ -195,6 +200,6 @@ export default function HomePage() {
           }),
         }}
       />
-    </main>
+    </div>
   );
 }

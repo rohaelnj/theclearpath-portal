@@ -200,21 +200,21 @@ const [complete, setComplete] = useState(false);
 
   return (
     <form ref={formRef} className="space-y-8" aria-describedby="intake-help">
-      <p id="intake-help" className="text-sm text-neutral-500">
+      <p id="intake-help" className="text-sm text-neutral-700">
         All questions are required. Your responses save automatically.
       </p>
       {QUESTION_META.map((question) => (
-        <div key={question.key} className="space-y-2 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <label htmlFor={question.key} className="text-sm font-medium text-neutral-900">
-            {question.label}
-          </label>
+        <div
+          key={question.key}
+          className="space-y-2 rounded-2xl border border-neutral-200 bg-[color:oklch(85%_0.03_70/0.6)] p-6 shadow-sm md:bg-surface2/50"
+        >
           {renderField(question, answers[question.key] ?? '', handleChange)}
-          <div className="flex items-center justify-between text-xs text-neutral-500">
+          <div className="flex items-center justify-between text-xs text-neutral-700">
             <span>{saving[question.key] ? 'Saving…' : saved[question.key] ? 'Saved ✓' : 'Autosaves'}</span>
           </div>
         </div>
       ))}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">
+      <div className="rounded-2xl border border-neutral-200 bg-[color:oklch(85%_0.03_70/0.6)] p-6 text-center shadow-sm md:bg-surface2/50">
         <p className="text-sm text-neutral-600">When every answer is complete, continue to see your recommended plan.</p>
         <button
           type="button"
@@ -222,8 +222,8 @@ const [complete, setComplete] = useState(false);
           onClick={() => complete && router.push('/plans')}
           className={`mt-4 ${
             complete
-              ? 'rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'
-              : 'rounded-full bg-black/10 px-6 py-3 text-sm font-semibold text-black/50 cursor-not-allowed'
+              ? 'rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
+              : 'rounded-full bg-black/10 px-6 py-3 text-sm font-semibold text-black/50 cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'
           }`}
           aria-disabled={!complete}
         >
@@ -241,90 +241,131 @@ function renderField(
 ): ReactElement {
   const isRequired = REQUIRED_KEYS.includes(question.key as Key);
   const base =
-    'w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-800 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+    'w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-800 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+  const autoComplete =
+    question.key === 'country'
+      ? 'country-name'
+      : question.key === 'language'
+        ? 'language'
+        : question.key === 'dob'
+          ? 'bday'
+          : undefined;
 
   switch (question.type) {
     case 'select':
       return (
-        <select
-          id={question.key}
-          name={question.key}
-          required={isRequired}
-          value={value}
-          onChange={(event) => onChange(question.key, event.target.value)}
-          className={base}
-        >
-          <option value="" disabled>
-            Select an option
-          </option>
-          {question.options?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+        <>
+          <label htmlFor={question.key} className="text-sm font-medium text-neutral-900">
+            {question.label}
+          </label>
+          <select
+            id={question.key}
+            name={question.key}
+            required={isRequired}
+            value={value}
+            onChange={(event) => onChange(question.key, event.target.value)}
+            className={base}
+          >
+            <option value="" disabled>
+              Select an option
             </option>
-          ))}
-        </select>
+            {question.options?.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </>
       );
     case 'textarea':
       return (
-        <textarea
-          id={question.key}
-          name={question.key}
-          required={isRequired}
-          rows={4}
-          value={value}
-          placeholder={question.placeholder}
-          onChange={(event) => onChange(question.key, event.target.value)}
-          className={`${base} resize-none`}
-        />
+        <>
+          <label htmlFor={question.key} className="text-sm font-medium text-neutral-900">
+            {question.label}
+          </label>
+          <textarea
+            id={question.key}
+            name={question.key}
+            required={isRequired}
+            rows={4}
+            value={value}
+            placeholder={question.placeholder}
+            onChange={(event) => onChange(question.key, event.target.value)}
+            className={`${base} resize-none`}
+            aria-describedby={question.key === 'goal' ? 'goal-help' : undefined}
+          />
+          {question.key === 'goal' ? (
+            <p id="goal-help" className="text-xs text-neutral-700">
+              1–2 sentences is fine.
+            </p>
+          ) : null}
+        </>
       );
     case 'date':
       return (
-        <input
-          id={question.key}
-          name={question.key}
-          required={isRequired}
-          type="date"
-          value={value}
-          onChange={(event) => onChange(question.key, event.target.value)}
-          className={base}
-        />
+        <>
+          <label htmlFor={question.key} className="text-sm font-medium text-neutral-900">
+            {question.label}
+          </label>
+          <input
+            id={question.key}
+            name={question.key}
+            required={isRequired}
+            type="date"
+            value={value}
+            onChange={(event) => onChange(question.key, event.target.value)}
+            className={base}
+            autoComplete={autoComplete}
+          />
+        </>
       );
     case 'radio':
       return (
-        <div className="flex items-center gap-4">
-          {question.options?.map((option, index) => {
-            const inputId = `${question.key}-${option.value}`;
-            return (
-              <label key={option.value} htmlFor={inputId} className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                <input
-                  id={inputId}
-                  type="radio"
-                  name={question.key}
-                  value={option.value}
-                  checked={value === option.value}
-                  onChange={(event) => onChange(question.key, event.target.value)}
-                  className="h-4 w-4 border-neutral-300 text-primary focus:ring-primary/50"
-                  required={isRequired && index === 0}
-                />
-                {option.label}
-              </label>
-            );
-          })}
-        </div>
+        <fieldset className="space-y-3">
+          <legend id={`${question.key}-legend`} className="text-sm font-medium text-neutral-900">
+            {question.label}
+          </legend>
+          <div className="flex items-center gap-4" role="radiogroup" aria-labelledby={`${question.key}-legend`}>
+            {question.options?.map((option, index) => {
+              const inputId = `${question.key}-${option.value}`;
+              return (
+                <label key={option.value} htmlFor={inputId} className="inline-flex items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    id={inputId}
+                    type="radio"
+                    name={question.key}
+                    value={option.value}
+                    checked={value === option.value}
+                    onChange={(event) => onChange(question.key, event.target.value)}
+                    className="h-4 w-4 border-neutral-300 text-primary focus:ring-primary/50"
+                    required={isRequired && index === 0}
+                  />
+                  {option.label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
       );
     case 'text':
     default:
       return (
-        <input
-          id={question.key}
-          name={question.key}
-          required={isRequired}
-          type="text"
-          value={value}
-          placeholder={question.placeholder}
-          onChange={(event) => onChange(question.key, event.target.value)}
-          className={base}
-        />
+        <>
+          <label htmlFor={question.key} className="text-sm font-medium text-neutral-900">
+            {question.label}
+          </label>
+          <input
+            id={question.key}
+            name={question.key}
+            required={isRequired}
+            type="text"
+            value={value}
+            placeholder={question.placeholder}
+            onChange={(event) => onChange(question.key, event.target.value)}
+            className={base}
+            autoComplete={autoComplete}
+          />
+        </>
       );
   }
 }
