@@ -9,41 +9,43 @@ export const config = {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
 
   if (pathname.startsWith('/api')) {
     return NextResponse.next();
   }
 
-  if (PUBLIC_PATHS.has(pathname)) {
+  const token = parseAuthToken(request.cookies.get('auth_jwt')?.value);
+
+  if (PUBLIC_PATHS.has(normalizedPath)) {
+    if (token && normalizedPath === '/plans' && !token.surveyCompleted) {
+      return NextResponse.redirect(new URL('/intake', request.url));
+    }
     return NextResponse.next();
   }
 
-  if (pathname.startsWith('/patient') || pathname.startsWith('/therapist') || pathname.startsWith('/admin')) {
-    const token = parseAuthToken(request.cookies.get('auth_jwt')?.value);
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+  if (normalizedPath.startsWith('/patient')) {
+    if (!token.surveyCompleted) {
+      return NextResponse.redirect(new URL('/intake', request.url));
     }
-
-    if (pathname.startsWith('/patient')) {
-      if (!token.surveyCompleted) {
-        return NextResponse.redirect(new URL('/intake', request.url));
-      }
-      if (!token.planSelected) {
-        return NextResponse.redirect(new URL('/plans', request.url));
-      }
-      if (token.role !== 'patient') {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
+    if (!token.planSelected) {
+      return NextResponse.redirect(new URL('/plans', request.url));
     }
-
-    if (pathname.startsWith('/therapist') && token.role !== 'therapist') {
+    if (token.role !== 'patient') {
       return NextResponse.redirect(new URL('/', request.url));
     }
+  }
 
-    if (pathname.startsWith('/admin') && token.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+  if (normalizedPath.startsWith('/therapist') && token.role !== 'therapist') {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  if (normalizedPath.startsWith('/admin') && token.role !== 'admin') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
