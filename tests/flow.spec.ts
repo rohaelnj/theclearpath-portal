@@ -2,15 +2,17 @@ import { test, expect } from "@playwright/test";
 
 test("survey enables CTA and routes to plans", async ({ page }) => {
   await page.goto("http://localhost:3000/intake");
-  await page.getByLabel(/anxious/i).selectOption("often");
-  await page.getByLabel(/sleep/i).selectOption("good");
-  await page.getByLabel(/Where are you located/i).fill("United Arab Emirates");
-  await page.getByLabel(/Preferred language/i).fill("English");
-  await page.getByLabel(/gender preference/i).selectOption("no_preference");
-  await page.getByLabel(/Date of birth/i).fill("1990-01-01");
-  await page.getByRole("radio", { name: /^No$/ }).first().check();
-  await page.getByRole("radio", { name: /^No$/ }).nth(1).check();
-  await page.getByLabel(/goal/i).fill("Reduce anxiety");
+
+  await page.locator('select[name="anxiety"]').selectOption("often");
+  await page.locator('select[name="sleep"]').selectOption("good");
+  await page.locator('input[name="country"]').fill("United Arab Emirates");
+  await page.locator('input[name="language"]').fill("English");
+  await page.locator('select[name="therapistGender"]').selectOption("no_preference");
+  await page.locator('input[name="dob"]').fill("1990-01-01");
+  await page.locator('input[name="priorTherapy"][value="no"]').check();
+  await page.locator('input[name="risk"][value="no"]').check();
+  await page.locator('textarea[name="goal"]').fill("Reduce anxiety and sleep better");
+
   const cta = page.getByRole("button", { name: /recommended plan/i });
   await expect(cta).toBeEnabled();
   await cta.click();
