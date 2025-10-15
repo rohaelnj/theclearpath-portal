@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import type { Route } from 'next';
 
 const year = new Date().getFullYear();
 
@@ -14,7 +15,7 @@ export default function Footer(): ReactElement {
           <Link href="/legal/privacy-policy" className="text-primary transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             Privacy
           </Link>
-          <Link href="/support" className="text-primary transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          <Link href={'/support' as Route} className="text-primary transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             Contact
           </Link>
         </div>

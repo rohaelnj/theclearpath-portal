@@ -1,10 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import type { Route } from 'next';
 
 export default async function Header() {
   const jar = await cookies();
   const authed = Boolean(jar.get('auth_jwt'));
+  const ctaHref = (authed ? '/patient/sessions' : '/login') as Route;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-black/5 bg-surface">
@@ -27,7 +29,7 @@ export default async function Header() {
             Plans
           </Link>
           <Link
-            href={authed ? '/patient/sessions' : '/login'}
+            href={ctaHref}
             className="rounded-full bg-primary px-5 py-2 font-semibold text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             {authed ? 'Portal' : 'Login'}
