@@ -13,7 +13,7 @@ async function completeIntakeSurvey(page: Page) {
 }
 
 test("survey enables CTA and routes to plans", async ({ page }) => {
-  await page.goto("http://localhost:3000/intake");
+  await page.goto("http://localhost:8888/intake");
 
   await completeIntakeSurvey(page);
 
@@ -25,7 +25,7 @@ test("survey enables CTA and routes to plans", async ({ page }) => {
 });
 
 test("survey preserves next param across plans flow", async ({ page }) => {
-  await page.goto("http://localhost:3000/intake?next=%2Fportal");
+  await page.goto("http://localhost:8888/intake?next=%2Fportal");
 
   await completeIntakeSurvey(page);
 

@@ -94,7 +94,7 @@ export async function resolveUserFromCookies(store?: CookieLike): Promise<Portal
   }
 }
 
-export async function getUserFromCookie(store?: CookieLike, _origin?: string): Promise<PortalUser | null> {
+export async function getUserFromCookie(store?: CookieLike): Promise<PortalUser | null> {
   return resolveUserFromCookies(store);
 }
 

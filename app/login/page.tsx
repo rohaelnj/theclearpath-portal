@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
@@ -30,15 +29,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const searchParams = useSearchParams();
-  const rawRedirect = searchParams.get('redirect');
+  const [rawRedirect, setRawRedirect] = useState<string | null>(null);
   const redirectPath = useMemo(() => sanitizeRedirectPath(rawRedirect, '/portal'), [rawRedirect]);
   const signupHref = useMemo(() => {
     if (!rawRedirect) return '/signup';
-    const params = new URLSearchParams();
-    params.set('redirect', redirectPath);
-    return `/signup?${params.toString()}`;
+    return { pathname: '/signup', query: { redirect: redirectPath } } as const;
   }, [rawRedirect, redirectPath]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setRawRedirect(params.get('redirect'));
+  }, []);
 
   useEffect(() => {
     const auth = getAuthClient();
@@ -75,8 +77,10 @@ export default function LoginPage() {
 
       await persistSessionCookie(user);
       window.location.replace(redirectPath);
-    } catch (err: any) {
-      setError(mapError(err?.code));
+    } catch (err: unknown) {
+      const code =
+        typeof err === 'object' && err !== null && 'code' in err ? (err as { code?: string }).code : undefined;
+      setError(mapError(typeof code === 'string' ? code : undefined));
     } finally {
       setBusy(false);
     }

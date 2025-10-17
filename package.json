@@ -3,9 +3,9 @@
   "description": "The Clear Path Portal – Next.js Frontend",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=8888 next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "PORT=8888 next start",
     "lint": "next lint"
   },
   "dependencies": {

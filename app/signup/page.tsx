@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie } from '@/lib/session';
@@ -17,22 +16,22 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const searchParams = useSearchParams();
-  const rawRedirect = searchParams.get('redirect');
+  const [rawRedirect, setRawRedirect] = useState<string | null>(null);
   const redirectPath = useMemo(() => sanitizeRedirectPath(rawRedirect, '/intake'), [rawRedirect]);
   const loginHref = useMemo(() => {
     if (!rawRedirect) return '/login';
-    const params = new URLSearchParams();
-    params.set('redirect', redirectPath);
-    return `/login?${params.toString()}`;
+    return { pathname: '/login', query: { redirect: redirectPath } } as const;
   }, [rawRedirect, redirectPath]);
-  const prefillEmail = searchParams.get('email');
 
   useEffect(() => {
-    if (prefillEmail) {
-      setEmail(prefillEmail);
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setRawRedirect(params.get('redirect'));
+    const emailParam = params.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
     }
-  }, [prefillEmail]);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,8 +63,9 @@ export default function SignupPage() {
       }).catch(() => {});
 
       window.location.replace(redirectPath);
-    } catch (err: any) {
-      const message = err?.code as string | undefined;
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'code' in err ? (err as { code?: string }).code : undefined;
       if (message === 'auth/email-already-in-use') {
         setError('This email is already registered. Try signing in instead.');
       } else if (message === 'auth/invalid-email') {

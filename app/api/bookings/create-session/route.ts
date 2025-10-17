@@ -34,7 +34,7 @@ async function parseRequest(req: NextRequest): Promise<CheckoutSessionRequest> {
   let body: unknown;
   try {
     body = await req.json();
-  } catch (error) {
+  } catch {
     throw new Error('Invalid JSON body');
   }
 
@@ -114,7 +114,7 @@ function resolveBaseUrl(req: NextRequest, env: StripeEnv): string {
   if (originHeader && originHeader.trim().length > 0) {
     return originHeader;
   }
-  return 'http://localhost:3000';
+  return 'http://localhost:8888';
 }
 
 function toStripeMetadata(metadata: BookingMetadata): Record<string, string> {

@@ -1,4 +1,4 @@
-import { initializeApp, getApps, applicationDefault, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 function decodeKey(raw?: string): string {

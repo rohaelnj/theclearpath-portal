@@ -8,8 +8,20 @@ export const metadata: Metadata = {
   description: 'Complete nine quick questions so we can match you with a Clear Path therapist and tailored plan.',
 };
 
-export default function IntakePage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }): ReactElement {
-  const rawNext = typeof searchParams?.next === 'string' ? searchParams?.next : Array.isArray(searchParams?.next) ? searchParams?.next[0] : undefined;
+type Search = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function IntakePage({
+  searchParams,
+}: {
+  searchParams?: Search;
+}): Promise<ReactElement> {
+  const resolved = (await searchParams) ?? {};
+  const rawNext =
+    typeof resolved.next === 'string'
+      ? resolved.next
+      : Array.isArray(resolved.next)
+        ? resolved.next[0]
+        : undefined;
   const nextPath = sanitizeRedirectPath(rawNext ?? null, '/plans');
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">

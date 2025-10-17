@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
+import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -74,13 +75,13 @@ export default function PlansClient({ nextPath }: PlansClientProps): ReactElemen
         <div className="mt-10 flex flex-col items-stretch gap-4 md:flex-row md:items-center md:justify-between">
           <button
             type="button"
-            onClick={() => router.push(destination)}
+            onClick={() => router.push(destination as Route)}
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             {continueLabel}
           </button>
           <Link
-            href="/patient/sessions"
+            href={'/patient/sessions' as Route}
             className="text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Already subscribed? Go to your portal

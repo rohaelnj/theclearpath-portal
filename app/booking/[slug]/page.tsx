@@ -1,5 +1,7 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
+
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function BookingPage({
@@ -17,9 +19,9 @@ export default async function BookingPage({
     <main className="mx-auto max-w-xl p-8">
       <h1 className="text-2xl font-semibold">Booking {slug}</h1>
       {cancelled && <p className="mt-2 text-orange-700">Payment cancelled.</p>}
-      <a className="mt-6 inline-block underline" href="/">
+      <Link className="mt-6 inline-block underline" href="/">
         Back to home
-      </a>
+      </Link>
     </main>
   );
 }
