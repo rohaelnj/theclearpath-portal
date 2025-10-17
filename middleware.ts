@@ -10,6 +10,7 @@ export const config = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const normalizedPath = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+  const originalDestination = `${request.nextUrl.pathname}${request.nextUrl.search}`;
 
   if (pathname.startsWith('/api')) {
     return NextResponse.next();
@@ -23,21 +24,21 @@ export function middleware(request: NextRequest) {
 
   if (PUBLIC_PATHS.has(normalizedPath)) {
     if (token && normalizedPath === '/plans' && !token.surveyCompleted) {
-      return NextResponse.redirect(new URL('/intake', request.url));
+      return redirectWithParam(request, '/intake', 'next', originalDestination);
     }
     return NextResponse.next();
   }
 
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return redirectWithParam(request, '/login', 'redirect', originalDestination);
   }
 
   if (normalizedPath.startsWith('/patient')) {
     if (!token.surveyCompleted) {
-      return NextResponse.redirect(new URL('/intake', request.url));
+      return redirectWithParam(request, '/intake', 'next', originalDestination);
     }
     if (!token.planSelected) {
-      return NextResponse.redirect(new URL('/plans', request.url));
+      return redirectWithParam(request, '/plans', 'next', originalDestination);
     }
     if (token.role !== 'patient') {
       return NextResponse.redirect(new URL('/', request.url));
@@ -70,4 +71,11 @@ function parseAuthToken(raw?: string): AuthToken {
   } catch {
     return null;
   }
+}
+
+function redirectWithParam(request: NextRequest, pathname: string, param: 'redirect' | 'next', destination: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.searchParams.set(param, destination);
+  return NextResponse.redirect(url);
 }

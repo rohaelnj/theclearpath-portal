@@ -2,19 +2,19 @@
 
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import type { IntakeAnswers } from '@/lib/plans';
+import { buildRationale, decodeIntakeCookie, selectPlan } from '@/lib/plans';
+import { sanitizeRedirectPath } from '@/lib/urls';
 
-type PlanName = 'Intensive Weekly' | 'Weekly' | 'Bi-weekly';
-
-type IntakeAnswers = {
-  anxiety?: string;
-  sleep?: string;
-  risk?: string;
-  goal?: string;
-  therapistGender?: string;
+type PlansClientProps = {
+  nextPath?: string;
 };
 
-export default function PlansClient(): ReactElement {
+export default function PlansClient({ nextPath }: PlansClientProps): ReactElement {
   const [answers, setAnswers] = useState<IntakeAnswers>({});
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -24,7 +24,7 @@ export default function PlansClient(): ReactElement {
         .find((entry) => entry.startsWith('intake='));
       if (cookie) {
         const raw = decodeURIComponent(cookie.split('=').slice(1).join('='));
-        const parsed = JSON.parse(raw) as IntakeAnswers;
+        const parsed = decodeIntakeCookie(raw);
         setAnswers(parsed);
       }
     } catch {
@@ -34,6 +34,8 @@ export default function PlansClient(): ReactElement {
 
   const plan = useMemo(() => selectPlan(answers), [answers]);
   const rationale = useMemo(() => buildRationale(plan.name, answers), [plan.name, answers]);
+  const destination = useMemo(() => sanitizeRedirectPath(nextPath ?? null, '/portal'), [nextPath]);
+  const continueLabel = destination === '/portal' ? 'Enter your portal' : 'Continue';
 
   return (
     <div>
@@ -72,89 +74,19 @@ export default function PlansClient(): ReactElement {
         <div className="mt-10 flex flex-col items-stretch gap-4 md:flex-row md:items-center md:justify-between">
           <button
             type="button"
-            onClick={() => alert('Proceed to checkout')}
+            onClick={() => router.push(destination)}
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            Continue to checkout
+            {continueLabel}
           </button>
-          <a
+          <Link
             href="/patient/sessions"
             className="text-sm font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            Already subscribed? Go to your Portal
-          </a>
+            Already subscribed? Go to your portal
+          </Link>
         </div>
       </section>
     </div>
   );
-}
-
-function selectPlan(answers: IntakeAnswers): { name: PlanName; features: string[] } {
-  if (answers.risk === 'yes' || ['often', 'always'].includes(answers.anxiety ?? '')) {
-    return {
-      name: 'Intensive Weekly',
-      features: [
-        '1:1 therapy sessions every week',
-        'Dedicated clinician for high-support concerns',
-        'Priority messaging between sessions',
-        'Weekly progress tracking and adjustments',
-      ],
-    };
-  }
-
-  if (['poor', 'very_poor'].includes(answers.sleep ?? '')) {
-    return {
-      name: 'Weekly',
-      features: [
-        'Four sessions per month with flexible scheduling',
-        'Personalised sleep hygiene guidance',
-        'Goal tracking dashboard inside the portal',
-        'Therapist check-ins to keep momentum',
-      ],
-    };
-  }
-
-  return {
-    name: 'Bi-weekly',
-    features: [
-      'Two sessions per month focused on steady progress',
-      'Action plans between sessions',
-      'Self-guided resources aligned with your goals',
-      'Easy rescheduling inside the portal',
-    ],
-  };
-}
-
-function buildRationale(planName: PlanName, answers: IntakeAnswers): string {
-  const reasons: string[] = [];
-
-  if (answers.anxiety && ['often', 'always'].includes(answers.anxiety)) {
-    reasons.push('you noted experiencing frequent anxiety');
-  }
-  if (answers.sleep && ['poor', 'very_poor'].includes(answers.sleep)) {
-    reasons.push('your sleep quality could use structured support');
-  }
-  if (answers.risk === 'yes') {
-    reasons.push('we prioritised high-touch care to keep you safe and supported');
-  }
-  if (answers.therapistGender && answers.therapistGender !== 'no_preference') {
-    reasons.push(`we will match you with a ${answers.therapistGender} therapist per your preference`);
-  }
-  if (answers.goal) {
-    reasons.push(`and we’ll focus sessions on "${answers.goal}"`);
-  }
-
-  if (!reasons.length) {
-    return `${planName} balances steady progress with flexibility—ideal for continuing your wellbeing journey.`;
-  }
-
-  return `We recommended ${planName.toLowerCase()} care because ${formatReasons(reasons)}.`;
-}
-
-function formatReasons(reasons: string[]): string {
-  if (reasons.length === 1) {
-    return reasons[0];
-  }
-  const last = reasons.pop();
-  return `${reasons.join(', ')} and ${last}`;
 }

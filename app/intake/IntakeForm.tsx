@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type QuestionKey =
@@ -110,7 +110,7 @@ function ga(event: string, params: Record<string, unknown>) {
   w.gtag?.('event', event, params);
 }
 
-export default function IntakeForm(): ReactElement {
+export default function IntakeForm({ nextPath }: { nextPath?: string }): ReactElement {
   const router = useRouter();
   const [answers, setAnswers] = useState<Partial<Answers>>({});
 const [saving, setSaving] = useState<Record<QuestionKey, boolean>>({} as Record<QuestionKey, boolean>);
@@ -118,6 +118,12 @@ const [saved, setSaved] = useState<Record<QuestionKey, boolean>>({} as Record<Qu
 const completionLogged = useRef(false);
 const formRef = useRef<HTMLFormElement>(null);
 const [complete, setComplete] = useState(false);
+const plansDestination = useMemo(() => {
+  if (nextPath && nextPath !== '/plans') {
+    return `/plans?next=${encodeURIComponent(nextPath)}`;
+  }
+  return '/plans';
+}, [nextPath]);
 
   const handleSave = useCallback(async (key: QuestionKey, value: string) => {
     setSaving((prev) => ({ ...prev, [key]: true }));
@@ -219,7 +225,7 @@ const [complete, setComplete] = useState(false);
         <button
           type="button"
           disabled={!complete}
-          onClick={() => complete && router.push('/plans')}
+          onClick={() => complete && router.push(plansDestination)}
           className={`mt-4 ${
             complete
               ? 'rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary'

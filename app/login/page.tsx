@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import { sanitizeRedirectPath } from '@/lib/urls';
 
 function mapError(code?: string): string {
   switch (code) {
@@ -28,19 +30,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectPath = useMemo(() => sanitizeRedirectPath(rawRedirect, '/portal'), [rawRedirect]);
+  const signupHref = useMemo(() => {
+    if (!rawRedirect) return '/signup';
+    const params = new URLSearchParams();
+    params.set('redirect', redirectPath);
+    return `/signup?${params.toString()}`;
+  }, [rawRedirect, redirectPath]);
 
   useEffect(() => {
     const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await persistSessionCookie(user);
-        window.location.replace('/portal');
+        window.location.replace(redirectPath);
       } else {
         await clearSessionCookie().catch(() => {});
       }
     });
     return () => unsub();
-  }, []);
+  }, [redirectPath]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,7 +74,7 @@ export default function LoginPage() {
       }
 
       await persistSessionCookie(user);
-      window.location.replace('/portal');
+      window.location.replace(redirectPath);
     } catch (err: any) {
       setError(mapError(err?.code));
     } finally {
@@ -126,11 +137,11 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <GoogleSignInButton className="mt-6" />
+      <GoogleSignInButton className="mt-6" redirectPath={redirectPath} />
 
       <p className="mt-8 text-sm text-neutral-600">
         New here?{' '}
-        <Link href="/signup" className="font-medium text-primary underline">
+        <Link href={signupHref} className="font-medium text-primary underline">
           Create an account
         </Link>
       </p>

@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, signOut } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
+import { sanitizeRedirectPath } from '@/lib/urls';
 
 type Props = {
   className?: string;
+  redirectPath?: string | null;
 };
 
-export default function GoogleSignInButton({ className = '' }: Props): React.ReactElement {
+export default function GoogleSignInButton({ className = '', redirectPath }: Props): React.ReactElement {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -25,6 +27,8 @@ export default function GoogleSignInButton({ className = '' }: Props): React.Rea
       const cred = await signInWithPopup(auth, provider);
       const info = getAdditionalUserInfo(cred);
 
+      const targetPath = sanitizeRedirectPath(redirectPath ?? null, '/portal');
+
       if (info?.isNewUser) {
         try {
           await cred.user.delete();
@@ -33,12 +37,18 @@ export default function GoogleSignInButton({ className = '' }: Props): React.Rea
         }
         await signOut(auth);
         await clearSessionCookie();
-        router.replace(`/signup?email=${encodeURIComponent(cred.user.email || '')}&from=google`);
+        const params = new URLSearchParams();
+        if (cred.user.email) {
+          params.set('email', cred.user.email);
+        }
+        params.set('from', 'google');
+        params.set('redirect', targetPath);
+        router.replace(`/signup?${params.toString()}`);
         return;
       }
 
       await persistSessionCookie(cred.user);
-      window.location.replace('/portal');
+      window.location.replace(targetPath);
     } catch (err) {
       console.error('Google sign-in failed:', err);
       alert('Google sign-in failed. Please try again.');
