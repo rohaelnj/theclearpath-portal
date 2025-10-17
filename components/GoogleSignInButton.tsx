@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, signOut } from 'firebase/auth';
@@ -64,7 +66,7 @@ export default function GoogleSignInButton({ className = '', redirectPath }: Pro
       disabled={loading}
       className={`flex w-full items-center justify-center gap-3 rounded-full border border-primary px-5 py-3 text-sm font-medium text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
-      <img src="/google.svg" alt="Google" className="h-6 w-6" />
+      <Image src="/google.svg" alt="Google" width={24} height={24} />
       {loading ? 'Please wait…' : 'Continue with Google'}
     </button>
   );

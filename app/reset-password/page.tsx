@@ -35,10 +35,12 @@ export default function ResetPassword() {
       setTimeout(() => {
         window.location.href = "/login";
       }, 2500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("ready");
+      const message =
+        typeof err === "object" && err !== null && "message" in err ? String((err as { message?: string }).message) : "";
       setErrorMsg(
-        err?.message?.includes("weak-password")
+        message.includes("weak-password")
           ? "Password must be at least 6 characters."
           : "❌ Failed to reset password. Try again."
       );

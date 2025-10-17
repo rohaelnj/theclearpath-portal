@@ -8,16 +8,19 @@ export const metadata: Metadata = {
   description: 'Review your personalised Clear Path therapy recommendation and see why it matches your goals before continuing.',
 };
 
-export default function PlansPage({
+type Search = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function PlansPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
-}): ReactElement {
+  searchParams?: Search;
+}): Promise<ReactElement> {
+  const resolved = (await searchParams) ?? {};
   const rawNext =
-    typeof searchParams?.next === 'string'
-      ? searchParams.next
-      : Array.isArray(searchParams?.next)
-        ? searchParams.next[0]
+    typeof resolved.next === 'string'
+      ? resolved.next
+      : Array.isArray(resolved.next)
+        ? resolved.next[0]
         : undefined;
   const nextPath = sanitizeRedirectPath(rawNext ?? null, '/portal');
   return (

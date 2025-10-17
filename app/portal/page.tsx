@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
+import type { Route } from 'next';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getAuthClient } from '@/lib/firebase';
@@ -150,7 +151,7 @@ export default function Portal(): ReactElement {
           </p>
         </div>
         <Link
-          href="/support"
+          href={'/support' as Route}
           className="mt-4 inline-flex items-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:mt-0"
         >
           Visit support

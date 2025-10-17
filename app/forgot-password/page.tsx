@@ -13,7 +13,7 @@ export default function ForgotPassword() {
     try {
       await sendPasswordResetEmail(auth, email);
       setStatus("sent");
-    } catch (err) {
+    } catch {
       setStatus("error");
     }
   };
