@@ -8,7 +8,7 @@ export default function Page(): React.ReactElement {
     return (
         <Suspense
             fallback={
-                <main style={{ minHeight: "60vh", display: "grid", placeItems: "center", fontFamily: "system-ui" }}>
+                <main className="grid min-h-[60vh] place-items-center font-sans">
                     <p>Loading…</p>
                 </main>
             }

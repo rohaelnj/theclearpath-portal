@@ -101,23 +101,23 @@ const sections: Array<{ title: string; paragraphs: string[] }> = [
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="bg-[#DED4C8]/40">
+    <main className="bg-stone-100/60">
       <div className="mx-auto w-full max-w-4xl px-6 py-16">
-        <div className="rounded-3xl bg-white p-8 shadow-lg shadow-[#1F4142]/10">
-          <header className="border-b border-[#1F4142]/15 pb-6">
-            <p className="text-sm uppercase tracking-wide text-[#1F4140]/70">Privacy Policy — The Clear Path</p>
-            <h1 className="mt-2 text-3xl font-bold text-[#1F4142]">Your privacy, our responsibility</h1>
-            <p className="mt-3 text-sm text-[#1F4140]/80">Effective date: 9 October 2025 · Applies to services delivered via portal.theclearpath.ae</p>
+        <div className="rounded-3xl bg-white p-8 shadow-lg shadow-primary/10">
+          <header className="border-b border-primary/15 pb-6">
+            <p className="text-sm uppercase tracking-wide text-primary/70">Privacy Policy — The Clear Path</p>
+            <h1 className="mt-2 text-3xl font-bold text-primary">Your privacy, our responsibility</h1>
+            <p className="mt-3 text-sm text-primary/80">Effective date: 9 October 2025 · Applies to services delivered via portal.theclearpath.ae</p>
           </header>
 
-          <div className="mt-8 space-y-8 text-[#1F4140]">
+          <div className="mt-8 space-y-8 text-neutral-700">
             {sections.map((section) => (
               <section key={section.title}>
-                <h2 className="text-xl font-semibold text-[#1F4142]">{section.title}</h2>
+                <h2 className="text-xl font-semibold text-primary">{section.title}</h2>
                 <ul className="mt-3 space-y-2 text-sm leading-relaxed md:text-base">
                   {section.paragraphs.map((paragraph) => (
                     <li key={paragraph} className="flex items-start gap-2">
-                      <span className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-[#1F4142]" aria-hidden />
+                      <span className="mt-2 inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
                       <span>{paragraph}</span>
                     </li>
                   ))}

@@ -44,10 +44,24 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const gaId = process.env.NEXT_PUBLIC_GA4_ID;
 
   return (
-    <html lang="en">
-      <body className="bg-[#EDE6DC] text-[#1F4142] antialiased">
+    <html lang="en" className="bg-surface text-[17px] md:text-[18px]">
+      <head suppressHydrationWarning>
+        <meta
+          name="description"
+          content="Licensed UAE therapists. Confidential video sessions. Flexible scheduling with Clear Path."
+        />
+      </head>
+      <body className="bg-surface font-sans text-neutral-900 antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 rounded bg-primary px-3 py-2 text-white"
+        >
+          Skip to content
+        </a>
         <Header />
-        <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">{children}</main>
+        <main id="main" role="main" className="min-h-screen flex flex-col">
+          {children}
+        </main>
         <Footer />
         {gaId ? (
           <>

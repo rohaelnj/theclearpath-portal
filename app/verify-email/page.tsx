@@ -103,7 +103,7 @@ export default function VerifyEmailPage(): React.ReactElement {
         id="code"
         value={code}
         onChange={(e) => setCode(e.target.value.trim())}
-        className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+        className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
         placeholder="Paste oobCode here"
       />
 
@@ -119,7 +119,7 @@ export default function VerifyEmailPage(): React.ReactElement {
         <button
           type="button"
           onClick={handleVerify}
-          className="rounded-full bg-[#1F4142] px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+          className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary/90 disabled:opacity-60"
           disabled={status !== 'ready'}
         >
           Verify now
@@ -128,7 +128,7 @@ export default function VerifyEmailPage(): React.ReactElement {
 
       <p className="mt-6 text-sm text-neutral-600">
         Didn’t get the email?{' '}
-        <a className="font-medium text-[#1F4142] underline" href="/verify-email/sent">
+        <a className="font-medium text-primary underline" href="/verify-email/sent">
           Resend verification
         </a>
       </p>

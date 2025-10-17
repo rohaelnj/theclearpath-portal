@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie } from '@/lib/session';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import { sanitizeRedirectPath } from '@/lib/urls';
 
 const MIN_PASSWORD = 8;
 
@@ -15,6 +17,22 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectPath = useMemo(() => sanitizeRedirectPath(rawRedirect, '/intake'), [rawRedirect]);
+  const loginHref = useMemo(() => {
+    if (!rawRedirect) return '/login';
+    const params = new URLSearchParams();
+    params.set('redirect', redirectPath);
+    return `/login?${params.toString()}`;
+  }, [rawRedirect, redirectPath]);
+  const prefillEmail = searchParams.get('email');
+
+  useEffect(() => {
+    if (prefillEmail) {
+      setEmail(prefillEmail);
+    }
+  }, [prefillEmail]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -45,7 +63,7 @@ export default function SignupPage() {
         }),
       }).catch(() => {});
 
-      window.location.replace('/portal');
+      window.location.replace(redirectPath);
     } catch (err: any) {
       const message = err?.code as string | undefined;
       if (message === 'auth/email-already-in-use') {
@@ -74,14 +92,14 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit} className="mt-10 grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
           <label htmlFor="name" className="text-sm font-medium text-neutral-700">
-            Full name
+            Full name <span className="text-xs text-neutral-500">(optional)</span>
           </label>
           <input
             id="name"
             name="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
             placeholder="How should we address you?"
             autoComplete="name"
           />
@@ -99,13 +117,13 @@ export default function SignupPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
         <div className="md:col-span-2">
           <label htmlFor="password" className="text-sm font-medium text-neutral-700">
-            Password
+            Password <span className="text-xs text-neutral-500">(min {MIN_PASSWORD} characters)</span>
           </label>
           <input
             id="password"
@@ -115,7 +133,7 @@ export default function SignupPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -124,17 +142,17 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={busy}
-          className="md:col-span-2 rounded-full bg-[#1F4142] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
+          className="md:col-span-2 rounded-full bg-primary px-5 py-3 font-medium text-white transition hover:bg-primary/90 disabled:opacity-60"
         >
           {busy ? 'Creating account…' : 'Create account'}
         </button>
       </form>
 
-      <GoogleSignInButton className="mt-6" />
+      <GoogleSignInButton className="mt-6" redirectPath={redirectPath} />
 
       <p className="mt-8 text-sm text-neutral-600">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-[#1F4142] underline">
+        <Link href={loginHref} className="font-medium text-primary underline">
           Sign in
         </Link>
       </p>

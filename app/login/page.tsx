@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import { getAuthClient } from '@/lib/firebase';
 import { persistSessionCookie, clearSessionCookie } from '@/lib/session';
 import GoogleSignInButton from '../../components/GoogleSignInButton';
+import { sanitizeRedirectPath } from '@/lib/urls';
 
 function mapError(code?: string): string {
   switch (code) {
@@ -28,19 +30,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const searchParams = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectPath = useMemo(() => sanitizeRedirectPath(rawRedirect, '/portal'), [rawRedirect]);
+  const signupHref = useMemo(() => {
+    if (!rawRedirect) return '/signup';
+    const params = new URLSearchParams();
+    params.set('redirect', redirectPath);
+    return `/signup?${params.toString()}`;
+  }, [rawRedirect, redirectPath]);
 
   useEffect(() => {
     const auth = getAuthClient();
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await persistSessionCookie(user);
-        window.location.replace('/portal');
+        window.location.replace(redirectPath);
       } else {
         await clearSessionCookie().catch(() => {});
       }
     });
     return () => unsub();
-  }, []);
+  }, [redirectPath]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,7 +74,7 @@ export default function LoginPage() {
       }
 
       await persistSessionCookie(user);
-      window.location.replace('/portal');
+      window.location.replace(redirectPath);
     } catch (err: any) {
       setError(mapError(err?.code));
     } finally {
@@ -91,7 +102,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <div>
@@ -99,7 +110,7 @@ export default function LoginPage() {
             <label htmlFor="password" className="text-sm font-medium text-neutral-700">
               Password
             </label>
-            <Link href="/forgot-password" className="text-xs font-medium text-[#1F4142] hover:opacity-80">
+            <Link href="/forgot-password" className="text-xs font-medium text-primary hover:opacity-80">
               Forgot?
             </Link>
           </div>
@@ -111,7 +122,7 @@ export default function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-[#1F4142] focus:ring-2 focus:ring-[#1F4142]/20"
+            className="mt-1 w-full rounded-2xl border border-neutral-200 px-4 py-3 text-neutral-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -120,17 +131,17 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-full bg-[#1F4142] px-5 py-3 font-medium text-white transition hover:opacity-90 disabled:opacity-60"
+          className="w-full rounded-full bg-primary px-5 py-3 font-medium text-white transition hover:bg-primary/90 disabled:opacity-60"
         >
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <GoogleSignInButton className="mt-6" />
+      <GoogleSignInButton className="mt-6" redirectPath={redirectPath} />
 
       <p className="mt-8 text-sm text-neutral-600">
         New here?{' '}
-        <Link href="/signup" className="font-medium text-[#1F4142] underline">
+        <Link href={signupHref} className="font-medium text-primary underline">
           Create an account
         </Link>
       </p>

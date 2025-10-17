@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin
+Disallow: /therapist
+Disallow: /patient
+Sitemap: https://portal.theclearpath.ae/sitemap.xml
